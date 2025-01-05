@@ -33,6 +33,7 @@ type Cache[K comparable, V any] struct {
 	m *cmap.ConcurrentMap[K, *node[K, V]]
 
 	capacity int
+	len      int
 }
 
 // New returns a new sieve.
@@ -49,12 +50,13 @@ func New[K comparable, V any](size int) Cache[K, V] {
 		hand:     nil,
 		m:        cmap.New[K, *node[K, V]](),
 		capacity: size,
+		len:      0,
 	}
 }
 
 // Len returns the number of elements in the sieve.
 func (s *Cache[K, V]) Len() int {
-	return s.m.Count()
+	return s.len
 }
 
 // Insert inserts a new key-value pair in the sieve.
@@ -88,7 +90,11 @@ func (s *Cache[K, V]) Insert(key K, value V) {
 			}
 		}
 
-		s.hand = s.hand.prev
+		s.hand = h.prev
+
+		if s.hand == nil {
+			s.hand = s.tail // Wrap to the end if we go beyond the head
+		}
 
 		if h.next != nil {
 			h.next.prev = h.prev
@@ -99,17 +105,20 @@ func (s *Cache[K, V]) Insert(key K, value V) {
 		if h.prev != nil {
 			h.prev.next = h.next
 		} else { // so we are the first node
-			s.head = h.next
+			s.hand = h.next
 		}
 
-		// delete(s.m, h.key)
 		s.m.Remove(h.key)
+
+		s.len--
 	}
 
 	n := newNode(key, value)
 
 	// insert into the cache
 	s.m.Set(key, n)
+
+	s.len++
 
 	// point to the current head
 	n.next = s.head
