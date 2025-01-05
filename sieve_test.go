@@ -1,6 +1,9 @@
 package sieve_test
 
 import (
+	"bufio"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/guerinoni/sieve"
@@ -20,6 +23,7 @@ func TestPanicWithSizeZero(t *testing.T) {
 
 	sieve.New[int, string](0)
 }
+
 func TestPanicWithSizeLessThanZero(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -139,7 +143,7 @@ func TestMoreComplex(t *testing.T) {
 	assert.True(t, ok)
 }
 
-// BenchmarkSimple-12      16972869                72.24 ns/op           50 B/op          1 allocs/op
+// BenchmarkSimple-12      16972869                72.24 ns/op           50 B/op          1 allocs/op.
 func BenchmarkSimple(b *testing.B) {
 	b.ReportAllocs()
 
@@ -147,5 +151,45 @@ func BenchmarkSimple(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		s.Insert(i, "one")
+	}
+}
+
+func BenchmarkSimpleConcurrent(b *testing.B) {
+	b.ReportAllocs()
+
+	s := sieve.New[int, string](10)
+	for i := 0; i < 100; i++ {
+		go func(i int) {
+			s.Insert(i, "one")
+		}(i)
+
+		go func(i int) {
+			s.Get(i)
+		}(i)
+	}
+}
+
+func BenchmarkBigInput(b *testing.B) {
+	b.ReportAllocs()
+
+	s := sieve.New[string, string](1000)
+
+	file := "./examples/trace"
+	f, err := os.Open(file)
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Split(bufio.ScanLines)
+
+	for read := scanner.Scan(); read; read = scanner.Scan() {
+		d := scanner.Text()
+		if _, ok := s.Get(d); !ok {
+			s.Insert(d, d)
+		}
 	}
 }
