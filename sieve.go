@@ -59,9 +59,9 @@ func (s *Cache[K, V]) Len() int {
 	return s.len
 }
 
-// Insert inserts a new key-value pair in the sieve.
+// Set inserts a new key-value pair in the sieve.
 // If the key already exists, it does nothing.
-func (s *Cache[K, V]) Insert(key K, value V) {
+func (s *Cache[K, V]) Set(key K, value V) {
 	// key already exists
 	if v, ok := s.m.Get(key); ok {
 		// mark the node visited

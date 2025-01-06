@@ -42,13 +42,13 @@ func TestEasy(t *testing.T) {
 	s := sieve.New[int, string](2)
 	assert.Equal(t, 0, s.Len())
 
-	s.Insert(1, "one")
+	s.Set(1, "one")
 	assert.Equal(t, 1, s.Len())
 
-	s.Insert(1, "one") // duplicate
+	s.Set(1, "one") // duplicate
 	assert.Equal(t, 1, s.Len())
 
-	s.Insert(2, "two")
+	s.Set(2, "two")
 	assert.Equal(t, 2, s.Len())
 
 	{
@@ -65,7 +65,7 @@ func TestEasy(t *testing.T) {
 
 	// now we start evicting
 
-	s.Insert(3, "three")
+	s.Set(3, "three")
 	assert.Equal(t, 2, s.Len())
 
 	{
@@ -84,15 +84,15 @@ func TestEasy(t *testing.T) {
 func TestAllAreVisited(t *testing.T) {
 	s := sieve.New[int, string](2)
 
-	s.Insert(1, "one")
-	s.Insert(2, "two")
+	s.Set(1, "one")
+	s.Set(2, "two")
 
 	s.Get(1)
 	s.Get(2)
 
 	// so now we have all nodes visited
 
-	s.Insert(3, "three")
+	s.Set(3, "three")
 	assert.Equal(t, 2, s.Len())
 
 	{
@@ -117,16 +117,16 @@ func TestAllAreVisited(t *testing.T) {
 func TestMoreComplex(t *testing.T) {
 	s := sieve.New[int, struct{}](4)
 
-	s.Insert(7, struct{}{})
-	s.Insert(7, struct{}{})
-	s.Insert(5, struct{}{})
-	s.Insert(5, struct{}{})
-	s.Insert(6, struct{}{})
-	s.Insert(10, struct{}{})
-	s.Insert(9, struct{}{})
-	s.Insert(1, struct{}{})
-	s.Insert(5, struct{}{})
-	s.Insert(7, struct{}{})
+	s.Set(7, struct{}{})
+	s.Set(7, struct{}{})
+	s.Set(5, struct{}{})
+	s.Set(5, struct{}{})
+	s.Set(6, struct{}{})
+	s.Set(10, struct{}{})
+	s.Set(9, struct{}{})
+	s.Set(1, struct{}{})
+	s.Set(5, struct{}{})
+	s.Set(7, struct{}{})
 
 	assert.Equal(t, 4, s.Len())
 
@@ -143,14 +143,14 @@ func TestMoreComplex(t *testing.T) {
 	assert.True(t, ok)
 }
 
-// BenchmarkSimple-12      16972869                72.24 ns/op           50 B/op          1 allocs/op.
+// BenchmarkSimple-12      12565904                83.42 ns/op           48 B/op          1 allocs/op
 func BenchmarkSimple(b *testing.B) {
 	b.ReportAllocs()
 
 	s := sieve.New[int, string](10)
 
 	for i := 0; i < b.N; i++ {
-		s.Insert(i, "one")
+		s.Set(i, "one")
 	}
 }
 
@@ -160,7 +160,7 @@ func BenchmarkSimpleConcurrent(b *testing.B) {
 	s := sieve.New[int, string](10)
 	for i := 0; i < 100; i++ {
 		go func(i int) {
-			s.Insert(i, "one")
+			s.Set(i, "one")
 		}(i)
 
 		go func(i int) {
@@ -189,7 +189,7 @@ func BenchmarkBigInput(b *testing.B) {
 	for read := scanner.Scan(); read; read = scanner.Scan() {
 		d := scanner.Text()
 		if _, ok := s.Get(d); !ok {
-			s.Insert(d, d)
+			s.Set(d, d)
 		}
 	}
 }

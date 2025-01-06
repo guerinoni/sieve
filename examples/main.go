@@ -29,7 +29,7 @@ func main() {
 		d := scanner.Text()
 		if _, ok := cache.Get(d); !ok {
 			missCount += 1
-			cache.Insert(d, d)
+			cache.Set(d, d)
 		}
 	}
 
