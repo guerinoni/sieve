@@ -9,7 +9,7 @@ COVERAGE_FILE := coverage.out
 .PHONY: test
 test:
 	@echo "Running tests..."
-	go test $(PKG) -v
+	go test -race $(PKG) -v
 
 # Run tests with escape analysis
 .PHONY: test-escape
