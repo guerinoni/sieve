@@ -1,7 +1,5 @@
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/guerinoni/concurrent-map v0.0.0-20250105213026-c50eee96fb68 h1:3Fm35YzGQYfpJ/ZN4PQfcMfibNUPrrAiJTFyP8n4Kt0=
-github.com/guerinoni/concurrent-map v0.0.0-20250105213026-c50eee96fb68/go.mod h1:3+6pYsvK8D/2bbUb9qtZQDObn6bhHzrUf9SE5oJBmuc=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=

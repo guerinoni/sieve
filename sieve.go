@@ -1,7 +1,7 @@
 package sieve
 
 import (
-	cmap "github.com/guerinoni/concurrent-map"
+	"sync"
 )
 
 type node[K comparable, V any] struct {
@@ -28,12 +28,16 @@ func newNode[K comparable, V any](key K, value V) *node[K, V] {
 type Cache[K comparable, V any] struct {
 	head *node[K, V]
 	tail *node[K, V]
+	// hand is a pointer to the current node that is going to be evicted.
 	hand *node[K, V]
 
-	m *cmap.ConcurrentMap[K, *node[K, V]]
+	// m is a map that holds the key-value pairs.
+	m map[K]*node[K, V]
 
 	capacity int
 	len      int
+
+	mu sync.Mutex
 }
 
 // New returns a new sieve.
@@ -48,7 +52,7 @@ func New[K comparable, V any](size int) Cache[K, V] {
 		head:     nil,
 		tail:     nil,
 		hand:     nil,
-		m:        cmap.New[K, *node[K, V]](),
+		m:        make(map[K]*node[K, V]),
 		capacity: size,
 		len:      0,
 	}
@@ -62,8 +66,11 @@ func (s *Cache[K, V]) Len() int {
 // Set inserts a new key-value pair in the sieve.
 // If the key already exists, it does nothing.
 func (s *Cache[K, V]) Set(key K, value V) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// key already exists
-	if v, ok := s.m.Get(key); ok {
+	if v, ok := s.m[key]; ok {
 		// mark the node visited
 		v.visited = true
 
@@ -108,7 +115,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 			s.hand = h.next
 		}
 
-		s.m.Remove(h.key)
+		delete(s.m, h.key)
 
 		s.len--
 	}
@@ -116,7 +123,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	n := newNode(key, value)
 
 	// insert into the cache
-	s.m.Set(key, n)
+	s.m[key] = n
 
 	s.len++
 
@@ -144,7 +151,10 @@ func (s *Cache[K, V]) Set(key K, value V) {
 // Get returns the value associated with the key.
 // If the key does not exist, it returns zero value an false, otherwise the value and true.
 func (s *Cache[K, V]) Get(key K) (V, bool) {
-	if n, ok := s.m.Get(key); ok {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if n, ok := s.m[key]; ok {
 		// mark the node visited
 		n.visited = true
 

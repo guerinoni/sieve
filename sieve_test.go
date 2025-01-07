@@ -143,7 +143,7 @@ func TestMoreComplex(t *testing.T) {
 	assert.True(t, ok)
 }
 
-// BenchmarkSimple-12      12565904                83.42 ns/op           48 B/op          1 allocs/op
+// BenchmarkSimple-12      16318418                73.75 ns/op           50 B/op          1 allocs/op
 func BenchmarkSimple(b *testing.B) {
 	b.ReportAllocs()
 
@@ -154,6 +154,7 @@ func BenchmarkSimple(b *testing.B) {
 	}
 }
 
+// BenchmarkSimpleConcurrent-12            1000000000               0.0000320 ns/op               0 B/op          0 allocs/op
 func BenchmarkSimpleConcurrent(b *testing.B) {
 	b.ReportAllocs()
 
@@ -169,6 +170,7 @@ func BenchmarkSimpleConcurrent(b *testing.B) {
 	}
 }
 
+// BenchmarkBigInput-12                    1000000000               0.03404 ns/op         0 B/op          0 allocs/op
 func BenchmarkBigInput(b *testing.B) {
 	b.ReportAllocs()
 
