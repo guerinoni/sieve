@@ -137,6 +137,20 @@ func TestAllAreVisited(t *testing.T) {
 	}
 }
 
+func TestHandWrapAround(t *testing.T) {
+	s := sieve.New[int, string](2)
+
+	s.Set(1, "one")
+	s.Set(2, "two")
+	s.Get(1)
+	s.Set(3, "three")
+	s.Get(3)
+	s.Set(4, "four")
+	s.Get(3)
+	s.Get(4)
+	s.Set(5, "five")
+}
+
 func TestMoreComplex(t *testing.T) {
 	s := sieve.New[int, struct{}](4)
 
