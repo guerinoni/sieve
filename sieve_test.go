@@ -7,14 +7,13 @@ import (
 	"testing"
 
 	"github.com/guerinoni/sieve"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPanicWithSizeZero(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			if r != "sieve: size must be greater than zero" {
-				t.Errorf("expected panic message 'something went wrong', got '%v'", r)
+				t.Errorf("expected panic message 'sieve: size must be greater than zero', got '%v'", r)
 			}
 		} else {
 			t.Errorf("expected panic but got none")
@@ -40,44 +39,62 @@ func TestPanicWithSizeLessThanZero(t *testing.T) {
 
 func TestEasy(t *testing.T) {
 	s := sieve.New[int, string](2)
-	assert.Equal(t, 0, s.Len())
-
-	s.Set(1, "one")
-	assert.Equal(t, 1, s.Len())
-
-	s.Set(1, "one") // duplicate
-	assert.Equal(t, 1, s.Len())
-
-	s.Set(2, "two")
-	assert.Equal(t, 2, s.Len())
-
-	{
-		v, ok := s.Get(3)
-		assert.False(t, ok)
-		assert.Equal(t, "", v)
+	if s.Len() != 0 {
+		t.Errorf("expected length 0, got %d", s.Len())
 	}
 
-	{
-		v, ok := s.Get(1)
-		assert.True(t, ok)
-		assert.Equal(t, "one", v)
+	s.Set(1, "one")
+	if s.Len() != 1 {
+		t.Errorf("expected length 1, got %d", s.Len())
+	}
+
+	s.Set(1, "one") // duplicate
+	if s.Len() != 1 {
+		t.Errorf("expected length 1 after duplicate, got %d", s.Len())
+	}
+
+	s.Set(2, "two")
+	if s.Len() != 2 {
+		t.Errorf("expected length 2, got %d", s.Len())
+	}
+
+	v, ok := s.Get(3)
+	if ok {
+		t.Errorf("expected key 3 to not exist, but it does")
+	}
+	if v != "" {
+		t.Errorf("expected value for key 3 to be '', got '%s'", v)
+	}
+
+	v, ok = s.Get(1)
+	if !ok {
+		t.Errorf("expected key 1 to exist, but it does not")
+	}
+	if v != "one" {
+		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
 	}
 
 	// now we start evicting
 
 	s.Set(3, "three")
-	assert.Equal(t, 2, s.Len())
-
-	{
-		v, ok := s.Get(1)
-		assert.True(t, ok)
-		assert.Equal(t, "one", v)
+	if s.Len() != 2 {
+		t.Errorf("expected length 2 after eviction, got %d", s.Len())
 	}
 
-	{
-		v, ok := s.Get(2)
-		assert.False(t, ok)
-		assert.Equal(t, "", v)
+	v, ok = s.Get(1)
+	if !ok {
+		t.Errorf("expected key 1 to exist, but it does not")
+	}
+	if v != "one" {
+		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
+	}
+
+	v, ok = s.Get(2)
+	if ok {
+		t.Errorf("expected key 2 to not exist, but it does")
+	}
+	if v != "" {
+		t.Errorf("expected value for key 2 to be '', got '%s'", v)
 	}
 }
 
@@ -86,31 +103,37 @@ func TestAllAreVisited(t *testing.T) {
 
 	s.Set(1, "one")
 	s.Set(2, "two")
-
-	s.Get(1)
 	s.Get(2)
 
 	// so now we have all nodes visited
 
 	s.Set(3, "three")
-	assert.Equal(t, 2, s.Len())
-
-	{
-		v, ok := s.Get(3)
-		assert.True(t, ok)
-		assert.Equal(t, "three", v)
+	if s.Len() != 2 {
+		t.Errorf("expected length 2 after eviction, got %d", s.Len())
 	}
 
-	{
-		v, ok := s.Get(2)
-		assert.True(t, ok)
-		assert.Equal(t, "two", v)
+	v, ok := s.Get(3)
+	if !ok {
+		t.Errorf("expected key 3 to exist, but it does not")
+	}
+	if v != "three" {
+		t.Errorf("expected value for key 3 to be 'three', got '%s'", v)
 	}
 
-	{
-		v, ok := s.Get(1)
-		assert.False(t, ok)
-		assert.Equal(t, "", v)
+	v, ok = s.Get(2)
+	if !ok {
+		t.Errorf("expected key 2 to exist, but it does not")
+	}
+	if v != "two" {
+		t.Errorf("expected value for key 2 to be 'two', got '%s'", v)
+	}
+
+	v, ok = s.Get(1)
+	if ok {
+		t.Errorf("expected key 1 to not exist, but it does")
+	}
+	if v != "" {
+		t.Errorf("expected value for key 1 to be '', got '%s'", v)
 	}
 }
 
@@ -128,19 +151,29 @@ func TestMoreComplex(t *testing.T) {
 	s.Set(5, struct{}{})
 	s.Set(7, struct{}{})
 
-	assert.Equal(t, 4, s.Len())
+	if s.Len() != 4 {
+		t.Errorf("expected 4, got %d", s.Len())
+	}
 
 	_, ok := s.Get(7)
-	assert.True(t, ok)
+	if !ok {
+		t.Errorf("expected to find 7")
+	}
 
 	_, ok = s.Get(5)
-	assert.True(t, ok)
+	if !ok {
+		t.Errorf("expected to find 5")
+	}
 
 	_, ok = s.Get(9)
-	assert.True(t, ok)
+	if !ok {
+		t.Errorf("expected to find 9")
+	}
 
 	_, ok = s.Get(1)
-	assert.True(t, ok)
+	if !ok {
+		t.Errorf("expected to find 1")
+	}
 }
 
 // BenchmarkSimple-12      16318418                73.75 ns/op           50 B/op          1 allocs/op
