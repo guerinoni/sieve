@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	const fileName = "trace"
+	const fileName = "input"
 	const capacity = 30
 	cache := sieve.New[string, string](capacity)
 

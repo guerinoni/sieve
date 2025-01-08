@@ -176,7 +176,7 @@ func BenchmarkBigInput(b *testing.B) {
 
 	s := sieve.New[string, string](1000)
 
-	file := "./examples/trace"
+	file := "./examples/input"
 	f, err := os.Open(file)
 	if err != nil {
 		fmt.Println(err)
