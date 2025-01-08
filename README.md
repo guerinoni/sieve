@@ -33,3 +33,55 @@ Promotion and demotion are internal cache operations designed to maintain an eff
 	•	Efficiency, as decisions are made with more data about an object’s popularity.
 
 2.	Quick demotion involves rapidly removing objects soon after insertion, particularly if they exhibit low popularity. This strategy is especially effective in handling workloads where objects are frequently scanned but rarely reused, as discussed in prior studies [16, 60, 67, 70, 75, 77]. Recent research [94] extends this concept to web cache workloads, demonstrating that quick demotion is beneficial because these workloads also follow Power-law distributions. With most objects being unpopular, quick demotion helps optimize cache usage by prioritizing valuable storage for high-demand content.
+
+## Comparison
+
+Running the [example](./examples/main.go) you can see it is compared to [golang-lru](github.com/hashicorp/golang-lru/v2) using the same input and counting the cache miss.
+```
+Miss count sieve: 4051
+Miss count golang-lru: 621835
+```
+
+Running 1 cache at time (using commented code) the result of memory allocated are the following:
+
+golang-lru
+```
+# before workload
+
+Alloc = 178 KB
+TotalAlloc = 178 KB
+Sys = 6547 KB
+NumGC = 0
+------
+
+Miss count golang-lru: 621835
+
+# after workload
+
+Alloc = 2128 KB
+TotalAlloc = 60348 KB
+Sys = 11539 KB
+NumGC = 16
+------
+```
+
+sieve:
+```
+# before workload
+
+Alloc = 178 KB
+TotalAlloc = 178 KB
+Sys = 6547 KB
+NumGC = 0
+------
+
+Miss count sieve: 4051
+
+# after workload
+
+Alloc = 2221 KB
+TotalAlloc = 2221 KB
+Sys = 6803 KB
+NumGC = 0
+------
+```
