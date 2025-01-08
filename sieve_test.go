@@ -142,12 +142,27 @@ func TestHandWrapAround(t *testing.T) {
 
 	s.Set(1, "one")
 	s.Set(2, "two")
-	s.Get(1)
+	_, ok := s.Get(1)
+	if !ok {
+		t.Errorf("expected to find 1")
+	}
+
 	s.Set(3, "three")
-	s.Get(3)
+	_, ok = s.Get(3)
+	if !ok {
+		t.Errorf("expected to find 3")
+	}
+
 	s.Set(4, "four")
-	s.Get(3)
-	s.Get(4)
+	_, ok = s.Get(3)
+	if !ok {
+		t.Errorf("expected to find 3")
+	}
+
+	_, ok = s.Get(4)
+	if !ok {
+		t.Errorf("expected to find 4")
+	}
 	s.Set(5, "five")
 }
 
@@ -190,7 +205,7 @@ func TestMoreComplex(t *testing.T) {
 	}
 }
 
-// BenchmarkSimple-12      16318418                73.75 ns/op           50 B/op          1 allocs/op
+// BenchmarkSimple-12      16318418                73.75 ns/op           50 B/op          1 allocs/op.
 func BenchmarkSimple(b *testing.B) {
 	b.ReportAllocs()
 
@@ -201,7 +216,7 @@ func BenchmarkSimple(b *testing.B) {
 	}
 }
 
-// BenchmarkSimpleConcurrent-12            1000000000               0.0000320 ns/op               0 B/op          0 allocs/op
+// BenchmarkSimpleConcurrent-12            1000000000               0.0000320 ns/op               0 B/op          0 allocs/op.
 func BenchmarkSimpleConcurrent(b *testing.B) {
 	b.ReportAllocs()
 
@@ -217,7 +232,7 @@ func BenchmarkSimpleConcurrent(b *testing.B) {
 	}
 }
 
-// BenchmarkBigInput-12                    1000000000               0.03404 ns/op         0 B/op          0 allocs/op
+// BenchmarkBigInput-12                    1000000000               0.03404 ns/op         0 B/op          0 allocs/op.
 func BenchmarkBigInput(b *testing.B) {
 	b.ReportAllocs()
 
