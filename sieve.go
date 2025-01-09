@@ -37,7 +37,7 @@ type Cache[K comparable, V any] struct {
 	capacity int
 	len      int
 
-	mu sync.Mutex
+	mu Lockable
 }
 
 // New returns a new sieve.
@@ -55,7 +55,17 @@ func New[K comparable, V any](size int) Cache[K, V] {
 		m:        make(map[K]*node[K, V]),
 		capacity: size,
 		len:      0,
+		mu:       &mutex{},
 	}
+}
+
+// NewSingleThread returns a new sieve that is safe for single-threaded use.
+func NewSingleThread[K comparable, V any](size int) Cache[K, V] {
+	c := New[K, V](size)
+
+	c.mu = noopMutex{}
+
+	return c
 }
 
 // Len returns the number of elements in the sieve.
@@ -165,3 +175,27 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 
 	return v, false
 }
+
+// Lockable is an interface that defines the Lock and Unlock methods.
+// This is useful for different implementations of the Cache.
+type Lockable interface {
+	Lock()
+	Unlock()
+}
+
+type mutex struct {
+	sync.Mutex
+}
+
+func (m *mutex) Lock() {
+	m.Mutex.Lock()
+}
+
+func (m *mutex) Unlock() {
+	m.Mutex.Unlock()
+}
+
+type noopMutex struct{}
+
+func (noopMutex) Lock()   {}
+func (noopMutex) Unlock() {}
