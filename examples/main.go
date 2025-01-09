@@ -9,12 +9,15 @@ import (
 
 	"github.com/guerinoni/sieve"
 	lru "github.com/hashicorp/golang-lru/v2"
+	golangfifo "github.com/scalalang2/golang-fifo/sieve"
 )
 
 const fileName = "input"
 const capacity = 30
 
 func main() {
+	// printMemoryUsage()
+
 	file, err := os.Open(fileName)
 	if err != nil {
 		fmt.Println(err)
@@ -30,10 +33,8 @@ func main() {
 		data = append(data, scanner.Text())
 	}
 
-	// printMemoryUsage()
-
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 
 	go func() {
 		missCountSieve := doSieve(data)
@@ -47,12 +48,19 @@ func main() {
 		wg.Done()
 	}()
 
+	go func() {
+		missCountGolangFifo := doGolangFifo(data)
+		fmt.Printf("Miss count golang-fifo: %d\n", missCountGolangFifo)
+		wg.Done()
+	}()
+
 	wg.Wait()
 
-	// printMemoryUsage()
+	printMemoryUsage()
 
 	// output:
 	// Miss count sieve: 4051
+	// Miss count golang-fifo: 498692
 	// Miss count golang-lru: 621835
 }
 
@@ -82,6 +90,20 @@ func doLRU(input []string) int {
 		if _, ok := cache.Get(d); !ok {
 			mc += 1
 			cache.Add(d, d)
+		}
+	}
+
+	return mc
+}
+
+func doGolangFifo(input []string) int {
+	mc := 0
+	cache := golangfifo.New[string, string](capacity, 0)
+
+	for _, d := range input {
+		if _, ok := cache.Get(d); !ok {
+			mc += 1
+			cache.Set(d, d)
 		}
 	}
 

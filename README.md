@@ -36,9 +36,12 @@ Promotion and demotion are internal cache operations designed to maintain an eff
 
 ## Comparison
 
-Running the [example](./examples/main.go) you can see it is compared to [golang-lru](github.com/hashicorp/golang-lru) using the same input and counting the cache miss.
+Running the [example](./examples/main.go) you can see it is compared to 
+ - [golang-lru](github.com/hashicorp/golang-lru)
+ - [golang-fifo]("github.com/scalalang2/golang-fifo")
 ```
 Miss count sieve: 4051
+Miss count golang-fifo: 498692
 Miss count golang-lru: 621835
 ```
 
@@ -58,10 +61,31 @@ Miss count golang-lru: 621835
 
 # after workload
 
-Alloc = 2128 KB
-TotalAlloc = 60348 KB
-Sys = 11539 KB
-NumGC = 16
+Alloc = 39917 KB
+TotalAlloc = 146313 KB
+Sys = 61267 KB
+NumGC = 12
+------
+```
+
+golang-fifo
+```
+# before workfload
+
+Alloc = 178 KB
+TotalAlloc = 178 KB
+Sys = 6291 KB
+NumGC = 0
+------
+
+Miss count golang-fifo: 498692
+
+# after workload
+
+Alloc = 32071 KB
+TotalAlloc = 157979 KB
+Sys = 58003 KB
+NumGC = 15
 ------
 ```
 
@@ -79,9 +103,9 @@ Miss count sieve: 4051
 
 # after workload
 
-Alloc = 2221 KB
-TotalAlloc = 2221 KB
-Sys = 6803 KB
-NumGC = 0
+Alloc = 19575 KB
+TotalAlloc = 88204 KB
+Sys = 60947 KB
+NumGC = 12
 ------
 ```
