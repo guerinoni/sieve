@@ -2,10 +2,31 @@
 
 In memory cache with sieve eviction algorithm in pure Go.
 
+- [x] thread-safe
+- [x] opt-out safety to use in single thread with more performance
+- [x] zero deps
+- [x] no CGO
+
 ## Usage
 
 ```go
 s := sieve.New[int, string](2)
+
+s.Insert(1, "one")
+s.Insert(2, "two")
+
+v, ok := s.Get(1)
+if !ok {
+    // do something
+}
+
+_ = v // use value
+```
+
+## Single thread version
+
+```go
+s := sieve.NewSingleThread[int, string](2)
 
 s.Insert(1, "one")
 s.Insert(2, "two")
