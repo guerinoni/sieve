@@ -36,7 +36,7 @@ Promotion and demotion are internal cache operations designed to maintain an eff
 
 ## Comparison
 
-Running the [example](./examples/main.go) you can see it is compared to [golang-lru](github.com/hashicorp/golang-lru/v2) using the same input and counting the cache miss.
+Running the [example](./examples/main.go) you can see it is compared to [golang-lru](github.com/hashicorp/golang-lru) using the same input and counting the cache miss.
 ```
 Miss count sieve: 4051
 Miss count golang-lru: 621835
