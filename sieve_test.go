@@ -221,7 +221,7 @@ func BenchmarkSimple(b *testing.B) {
 	}
 }
 
-// BenchmarkSimpleSingleThread-12          16110049                74.49 ns/op           49 B/op          1 allocs/op
+// BenchmarkSimpleSingleThread-12          16110049                74.49 ns/op           49 B/op          1 allocs/op.
 func BenchmarkSimpleSingleThread(b *testing.B) {
 	b.ReportAllocs()
 
@@ -274,7 +274,7 @@ func BenchmarkBigInput(b *testing.B) {
 	}
 }
 
-// BenchmarkBigInputSingleThread-12        1000000000               0.03304 ns/op         0 B/op          0 allocs/op
+// BenchmarkBigInputSingleThread-12        1000000000               0.03304 ns/op         0 B/op          0 allocs/op.
 func BenchmarkBigInputSingleThread(b *testing.B) {
 	b.ReportAllocs()
 

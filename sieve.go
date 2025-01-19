@@ -37,7 +37,7 @@ type Cache[K comparable, V any] struct {
 	capacity int
 	len      int
 
-	mu sync.Locker 
+	mu sync.Locker
 }
 
 // New returns a new sieve.
@@ -55,7 +55,7 @@ func New[K comparable, V any](size int) Cache[K, V] {
 		m:        make(map[K]*node[K, V]),
 		capacity: size,
 		len:      0,
-		mu:       &mutex{},
+		mu:       &sync.Mutex{},
 	}
 }
 
@@ -174,18 +174,6 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 	var v V // zero value
 
 	return v, false
-}
-
-type mutex struct {
-	sync.Mutex
-}
-
-func (m *mutex) Lock() {
-	m.Mutex.Lock()
-}
-
-func (m *mutex) Unlock() {
-	m.Mutex.Unlock()
 }
 
 type noopMutex struct{}
