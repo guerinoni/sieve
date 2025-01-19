@@ -37,7 +37,7 @@ type Cache[K comparable, V any] struct {
 	capacity int
 	len      int
 
-	mu Lockable
+	mu sync.Locker 
 }
 
 // New returns a new sieve.
@@ -174,13 +174,6 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 	var v V // zero value
 
 	return v, false
-}
-
-// Lockable is an interface that defines the Lock and Unlock methods.
-// This is useful for different implementations of the Cache.
-type Lockable interface {
-	Lock()
-	Unlock()
 }
 
 type mutex struct {
