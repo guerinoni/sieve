@@ -9,7 +9,7 @@ import (
 	"github.com/guerinoni/sieve"
 )
 
-func TestPanicWithSizeZero(t *testing.T) {
+func TestPanicWithSizeZeroSingleThread(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			if r != "sieve: size must be greater than zero" {
@@ -20,10 +20,10 @@ func TestPanicWithSizeZero(t *testing.T) {
 		}
 	}()
 
-	sieve.New[int, string](0)
+	sieve.NewSingleThread[int, string](0)
 }
 
-func TestPanicWithSizeLessThanZero(t *testing.T) {
+func TestPanicWithSizeLessThanZeroSingleThread(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			if r != "sieve: size must be greater than zero" {
@@ -34,11 +34,11 @@ func TestPanicWithSizeLessThanZero(t *testing.T) {
 		}
 	}()
 
-	sieve.New[string, int](-10)
+	sieve.NewSingleThread[string, int](-10)
 }
 
-func TestEasy(t *testing.T) {
-	s := sieve.New[int, string](2)
+func TestEasySingleThread(t *testing.T) {
+	s := sieve.NewSingleThread[int, string](2)
 	if s.Len() != 0 {
 		t.Errorf("expected length 0, got %d", s.Len())
 	}
@@ -98,8 +98,8 @@ func TestEasy(t *testing.T) {
 	}
 }
 
-func TestAllAreVisited(t *testing.T) {
-	s := sieve.New[int, string](2)
+func TestAllAreVisitedSingleThread(t *testing.T) {
+	s := sieve.NewSingleThread[int, string](2)
 
 	s.Set(1, "one")
 	s.Set(2, "two")
@@ -136,9 +136,8 @@ func TestAllAreVisited(t *testing.T) {
 		t.Errorf("expected value for key 1 to be '', got '%s'", v)
 	}
 }
-
-func TestHandWrapAround(t *testing.T) {
-	s := sieve.New[int, string](2)
+func TestHandWrapAroundSingleThread(t *testing.T) {
+	s := sieve.NewSingleThread[int, string](2)
 
 	s.Set(1, "one")
 	s.Set(2, "two")
@@ -166,58 +165,41 @@ func TestHandWrapAround(t *testing.T) {
 	s.Set(5, "five")
 }
 
-func TestMoreComplex(t *testing.T) {
-	s := sieve.New[int, struct{}](4)
-	ss := sieve.NewSingleThread[int, struct{}](4)
+func TestMoreComplexSingleThread(t *testing.T) {
+	s := sieve.NewSingleThread[int, struct{}](4)
+	s.Set(7, struct{}{})
+	s.Set(7, struct{}{})
+	s.Set(5, struct{}{})
+	s.Set(5, struct{}{})
+	s.Set(6, struct{}{})
+	s.Set(10, struct{}{})
+	s.Set(9, struct{}{})
+	s.Set(1, struct{}{})
+	s.Set(5, struct{}{})
+	s.Set(7, struct{}{})
 
-	slice := []sieve.Cache[int, struct{}]{s, ss}
-
-	for _, s := range slice {
-		s.Set(7, struct{}{})
-		s.Set(7, struct{}{})
-		s.Set(5, struct{}{})
-		s.Set(5, struct{}{})
-		s.Set(6, struct{}{})
-		s.Set(10, struct{}{})
-		s.Set(9, struct{}{})
-		s.Set(1, struct{}{})
-		s.Set(5, struct{}{})
-		s.Set(7, struct{}{})
-
-		if s.Len() != 4 {
-			t.Errorf("expected 4, got %d", s.Len())
-		}
-
-		_, ok := s.Get(7)
-		if !ok {
-			t.Errorf("expected to find 7")
-		}
-
-		_, ok = s.Get(5)
-		if !ok {
-			t.Errorf("expected to find 5")
-		}
-
-		_, ok = s.Get(9)
-		if !ok {
-			t.Errorf("expected to find 9")
-		}
-
-		_, ok = s.Get(1)
-		if !ok {
-			t.Errorf("expected to find 1")
-		}
+	if s.Len() != 4 {
+		t.Errorf("expected 4, got %d", s.Len())
 	}
-}
 
-// BenchmarkSimple-12      16318418                73.75 ns/op           50 B/op          1 allocs/op.
-func BenchmarkSimple(b *testing.B) {
-	b.ReportAllocs()
+	_, ok := s.Get(7)
+	if !ok {
+		t.Errorf("expected to find 7")
+	}
 
-	s := sieve.New[int, string](10)
+	_, ok = s.Get(5)
+	if !ok {
+		t.Errorf("expected to find 5")
+	}
 
-	for i := 0; i < b.N; i++ {
-		s.Set(i, "one")
+	_, ok = s.Get(9)
+	if !ok {
+		t.Errorf("expected to find 9")
+	}
+
+	_, ok = s.Get(1)
+	if !ok {
+		t.Errorf("expected to find 1")
 	}
 }
 
@@ -225,52 +207,10 @@ func BenchmarkSimple(b *testing.B) {
 func BenchmarkSimpleSingleThread(b *testing.B) {
 	b.ReportAllocs()
 
-	s := sieve.New[int, string](10)
+	s := sieve.NewSingleThread[int, string](10)
 
 	for i := 0; i < b.N; i++ {
 		s.Set(i, "one")
-	}
-}
-
-// BenchmarkSimpleConcurrent-12            1000000000               0.0000320 ns/op               0 B/op          0 allocs/op.
-func BenchmarkSimpleConcurrent(b *testing.B) {
-	b.ReportAllocs()
-
-	s := sieve.New[int, string](10)
-	for i := 0; i < 100; i++ {
-		go func(i int) {
-			s.Set(i, "one")
-		}(i)
-
-		go func(i int) {
-			s.Get(i)
-		}(i)
-	}
-}
-
-// BenchmarkBigInput-12                    1000000000               0.03404 ns/op         0 B/op          0 allocs/op.
-func BenchmarkBigInput(b *testing.B) {
-	b.ReportAllocs()
-
-	s := sieve.New[string, string](1000)
-
-	file := "./examples/input"
-	f, err := os.Open(file)
-	if err != nil {
-		fmt.Println(err)
-
-		return
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
-
-	for read := scanner.Scan(); read; read = scanner.Scan() {
-		d := scanner.Text()
-		if _, ok := s.Get(d); !ok {
-			s.Set(d, d)
-		}
 	}
 }
 
