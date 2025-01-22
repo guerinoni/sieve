@@ -2,6 +2,7 @@ package sieve
 
 import (
 	"sync"
+	"time"
 )
 
 type node[K comparable, V any] struct {
@@ -12,6 +13,13 @@ type node[K comparable, V any] struct {
 	next *node[K, V]
 
 	visited bool
+	access  time.Time
+}
+
+func (n *node[K, V]) withTTL(now time.Time) *node[K, V] {
+	n.access = now
+
+	return n
 }
 
 func newNode[K comparable, V any](key K, value V) *node[K, V] {
@@ -36,19 +44,27 @@ type Cache[K comparable, V any] struct {
 
 	capacity int
 	len      int
+	ttl      time.Duration
 
 	mu sync.Locker
+}
+
+// WithTTL is a builder function used to add the expiration management for keys.
+func (s *Cache[K, V]) WithTTL(ttl time.Duration) *Cache[K, V] {
+	s.ttl = ttl
+
+	return s
 }
 
 // New returns a new sieve.
 // The size parameter is the maximum number of elements that the sieve can hold.
 // If the size is less than or equal to zero, it panics.
-func New[K comparable, V any](size int) Cache[K, V] {
+func New[K comparable, V any](size int) *Cache[K, V] {
 	if size <= 0 {
 		panic("sieve: size must be greater than zero")
 	}
 
-	return Cache[K, V]{
+	return &Cache[K, V]{
 		head:     nil,
 		tail:     nil,
 		hand:     nil,
@@ -60,7 +76,7 @@ func New[K comparable, V any](size int) Cache[K, V] {
 }
 
 // NewSingleThread returns a new sieve that is safe for single-threaded use.
-func NewSingleThread[K comparable, V any](size int) Cache[K, V] {
+func NewSingleThread[K comparable, V any](size int) *Cache[K, V] {
 	c := New[K, V](size)
 
 	c.mu = noopMutex{}
@@ -75,6 +91,9 @@ func (s *Cache[K, V]) Len() int {
 
 // Set inserts a new key-value pair in the sieve.
 // If the key already exists, it does nothing.
+// The order of the insert will be something like:
+// [head] <- [node] <- [node] <- ... <- [tail]
+// And the moving direction during eviction algorithm is from tail to head.
 func (s *Cache[K, V]) Set(key K, value V) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -136,6 +155,10 @@ func (s *Cache[K, V]) Set(key K, value V) {
 
 	n := newNode(key, value)
 
+	if s.ttl > 0 {
+		n = n.withTTL(now())
+	}
+
 	// insert into the cache
 	s.m[key] = n
 
@@ -172,6 +195,64 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 		// mark the node visited
 		n.visited = true
 
+		if s.ttl > 0 {
+			if now().Sub(n.access) > s.ttl {
+				if s.len == 1 {
+					// just reset everything
+					s.hand = nil
+					s.head = nil
+					s.tail = nil
+				}
+
+				if s.len == 2 {
+					if s.head == n {
+						s.head = s.tail
+					} else { // so n == s.tail
+						s.tail = s.head
+					}
+
+					s.hand = s.tail
+				}
+
+				if s.len >= 3 {
+					// remove from the linked list
+
+					switch n {
+					case s.head:
+						n.next.prev = nil
+						s.head = n.next
+					case s.tail:
+						if s.hand == n {
+							s.hand = n.prev
+						}
+
+						n.prev.next = nil
+						s.tail = n.prev
+					default:
+						if s.hand == n {
+							s.hand = n.prev
+						}
+
+						n.prev.next = n.next
+						n.next.prev = n.prev
+					}
+				}
+
+				// remove the node from the cache
+				delete(s.m, n.key)
+
+				// decrease length
+				s.len--
+
+				var v V // zero value
+
+				return v, false
+			}
+
+			// update the access time
+			n.access = now()
+		}
+
 		return n.value, true
 	}
 
@@ -180,7 +261,23 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 	return v, false
 }
 
+// Flush removes all elements from the sieve and dealloc the internal structs.
+func (s *Cache[K, V]) Flush() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.head = nil
+	s.tail = nil
+	s.hand = nil
+	s.m = make(map[K]*node[K, V])
+	s.len = 0
+}
+
 type noopMutex struct{}
 
 func (noopMutex) Lock()   {}
 func (noopMutex) Unlock() {}
+
+// now is real `time.Now` function.
+// It is a variable to make it easier to mock in tests.
+var now = time.Now

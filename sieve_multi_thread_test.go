@@ -9,10 +9,12 @@ import (
 	"github.com/guerinoni/sieve"
 )
 
+const panicError = "sieve: size must be greater than zero"
+
 func TestPanicWithSizeZero(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
-			if r != "sieve: size must be greater than zero" {
+			if r != panicError {
 				t.Errorf("expected panic message 'sieve: size must be greater than zero', got '%v'", r)
 			}
 		} else {
@@ -26,7 +28,7 @@ func TestPanicWithSizeZero(t *testing.T) {
 func TestPanicWithSizeLessThanZero(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
-			if r != "sieve: size must be greater than zero" {
+			if r != panicError {
 				t.Errorf("expected panic message 'something went wrong', got '%v'", r)
 			}
 		} else {
@@ -37,18 +39,20 @@ func TestPanicWithSizeLessThanZero(t *testing.T) {
 	sieve.New[string, int](-10)
 }
 
+const one = "one"
+
 func TestEasy(t *testing.T) {
 	s := sieve.New[int, string](2)
 	if s.Len() != 0 {
 		t.Errorf("expected length 0, got %d", s.Len())
 	}
 
-	s.Set(1, "one")
+	s.Set(1, one)
 	if s.Len() != 1 {
 		t.Errorf("expected length 1, got %d", s.Len())
 	}
 
-	s.Set(1, "one") // duplicate
+	s.Set(1, one) // duplicate
 	if s.Len() != 1 {
 		t.Errorf("expected length 1 after duplicate, got %d", s.Len())
 	}
@@ -70,7 +74,7 @@ func TestEasy(t *testing.T) {
 	if !ok {
 		t.Errorf("expected key 1 to exist, but it does not")
 	}
-	if v != "one" {
+	if v != one {
 		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
 	}
 
@@ -85,7 +89,7 @@ func TestEasy(t *testing.T) {
 	if !ok {
 		t.Errorf("expected key 1 to exist, but it does not")
 	}
-	if v != "one" {
+	if v != one {
 		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
 	}
 
@@ -101,7 +105,7 @@ func TestEasy(t *testing.T) {
 func TestAllAreVisited(t *testing.T) {
 	s := sieve.New[int, string](2)
 
-	s.Set(1, "one")
+	s.Set(1, one)
 	s.Set(2, "two")
 	s.Get(2)
 
@@ -136,10 +140,11 @@ func TestAllAreVisited(t *testing.T) {
 		t.Errorf("expected value for key 1 to be '', got '%s'", v)
 	}
 }
+
 func TestHandWrapAround(t *testing.T) {
 	s := sieve.New[int, string](2)
 
-	s.Set(1, "one")
+	s.Set(1, one)
 	s.Set(2, "two")
 	_, ok := s.Get(1)
 	if !ok {
@@ -203,25 +208,25 @@ func TestMoreComplex(t *testing.T) {
 	}
 }
 
-// BenchmarkSimple-12      16318418                73.75 ns/op           50 B/op          1 allocs/op.
+// BenchmarkSimple-12                      15193519                78.32 ns/op           81 B/op          1 allocs/op.
 func BenchmarkSimple(b *testing.B) {
 	b.ReportAllocs()
 
 	s := sieve.New[int, string](10)
 
 	for i := 0; i < b.N; i++ {
-		s.Set(i, "one")
+		s.Set(i, one)
 	}
 }
 
-// BenchmarkSimpleConcurrent-12            1000000000               0.0000320 ns/op               0 B/op          0 allocs/op.
+// BenchmarkSimpleConcurrent-12            1000000000               0.0000274 ns/op               0 B/op          0 allocs/op.
 func BenchmarkSimpleConcurrent(b *testing.B) {
 	b.ReportAllocs()
 
 	s := sieve.New[int, string](10)
 	for i := 0; i < 100; i++ {
 		go func(i int) {
-			s.Set(i, "one")
+			s.Set(i, one)
 		}(i)
 
 		go func(i int) {
@@ -230,7 +235,7 @@ func BenchmarkSimpleConcurrent(b *testing.B) {
 	}
 }
 
-// BenchmarkBigInput-12                    1000000000               0.03404 ns/op         0 B/op          0 allocs/op.
+// BenchmarkBigInput-12                    1000000000               0.03336 ns/op         0 B/op          0 allocs/op.
 func BenchmarkBigInput(b *testing.B) {
 	b.ReportAllocs()
 

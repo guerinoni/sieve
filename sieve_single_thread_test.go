@@ -12,7 +12,7 @@ import (
 func TestPanicWithSizeZeroSingleThread(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
-			if r != "sieve: size must be greater than zero" {
+			if r != panicError {
 				t.Errorf("expected panic message 'sieve: size must be greater than zero', got '%v'", r)
 			}
 		} else {
@@ -26,7 +26,7 @@ func TestPanicWithSizeZeroSingleThread(t *testing.T) {
 func TestPanicWithSizeLessThanZeroSingleThread(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
-			if r != "sieve: size must be greater than zero" {
+			if r != panicError {
 				t.Errorf("expected panic message 'something went wrong', got '%v'", r)
 			}
 		} else {
@@ -136,6 +136,7 @@ func TestAllAreVisitedSingleThread(t *testing.T) {
 		t.Errorf("expected value for key 1 to be '', got '%s'", v)
 	}
 }
+
 func TestHandWrapAroundSingleThread(t *testing.T) {
 	s := sieve.NewSingleThread[int, string](2)
 
@@ -203,7 +204,7 @@ func TestMoreComplexSingleThread(t *testing.T) {
 	}
 }
 
-// BenchmarkSimpleSingleThread-12          16110049                74.49 ns/op           49 B/op          1 allocs/op.
+// BenchmarkSimpleSingleThread-12          15171915                77.55 ns/op           81 B/op          1 allocs/op.
 func BenchmarkSimpleSingleThread(b *testing.B) {
 	b.ReportAllocs()
 
@@ -214,7 +215,7 @@ func BenchmarkSimpleSingleThread(b *testing.B) {
 	}
 }
 
-// BenchmarkBigInputSingleThread-12        1000000000               0.03304 ns/op         0 B/op          0 allocs/op.
+// BenchmarkBigInputSingleThread-12        1000000000               0.03280 ns/op         0 B/op          0 allocs/op.
 func BenchmarkBigInputSingleThread(b *testing.B) {
 	b.ReportAllocs()
 
