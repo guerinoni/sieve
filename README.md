@@ -39,6 +39,34 @@ if !ok {
 _ = v // use value
 ```
 
+## With TTL
+
+This is an opt-in feature for both single and multi thread.
+
+```go
+s := sieve.New[int, string](2).WithTTL(1 *time.Second)
+
+s.Insert(1, "one")
+s.Insert(2, "two")
+
+// ... wait 0.5s
+
+v, ok := s.Get(1) // bump the access timestamp
+if !ok {
+    // do something
+}
+
+_ = v // use value
+
+
+// ... wait another 1s
+_, ok = s.Get(1) // value is still here
+
+// ... wait 2s
+v, ok := s.Get(1) // value is gone
+```
+
+
 ## How it works
 
 [This is the paper](https://yazhuozhang.com/assets/publication/nsdi24-sieve.pdf)
