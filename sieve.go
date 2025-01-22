@@ -125,6 +125,10 @@ func (s *Cache[K, V]) Set(key K, value V) {
 			s.hand = h.next
 		}
 
+		if s.head == h {
+			s.head = h.next
+		}
+
 		delete(s.m, h.key)
 
 		s.len--
