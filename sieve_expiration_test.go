@@ -280,7 +280,7 @@ func TestMoreElementWithTTL(t *testing.T) {
 	})
 }
 
-// BenchmarkSimpleWithTTL-12               14450936                83.52 ns/op           82 B/op          1 allocs/op
+// BenchmarkSimpleWithTTL-12               14450936                83.52 ns/op           82 B/op          1 allocs/op.
 func BenchmarkSimpleWithTTL(b *testing.B) {
 	b.ReportAllocs()
 

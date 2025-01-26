@@ -207,7 +207,7 @@ func TestMoreComplex(t *testing.T) { //nolint: dupl
 	}
 }
 
-// BenchmarkSimple-12                      15239529                77.88 ns/op           81 B/op          1 allocs/op
+// BenchmarkSimple-12                      15239529                77.88 ns/op           81 B/op          1 allocs/op.
 func BenchmarkSimple(b *testing.B) {
 	b.ReportAllocs()
 
@@ -218,7 +218,7 @@ func BenchmarkSimple(b *testing.B) {
 	}
 }
 
-// BenchmarkSimpleConcurrent-12            1000000000               0.0000318 ns/op               0 B/op          0 allocs/op
+// BenchmarkSimpleConcurrent-12            1000000000               0.0000318 ns/op               0 B/op          0 allocs/op.
 func BenchmarkSimpleConcurrent(b *testing.B) {
 	b.ReportAllocs()
 
@@ -234,7 +234,7 @@ func BenchmarkSimpleConcurrent(b *testing.B) {
 	}
 }
 
-// BenchmarkBigInput-12                    1000000000               0.04391 ns/op         0 B/op          0 allocs/op
+// BenchmarkBigInput-12                    1000000000               0.04391 ns/op         0 B/op          0 allocs/op.
 func BenchmarkBigInput(b *testing.B) {
 	b.ReportAllocs()
 
