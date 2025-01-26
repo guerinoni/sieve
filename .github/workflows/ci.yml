@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+  schedule:
+    - cron: "0 0 */10 * *" # Runs at midnight UTC every 10th day of the month
 
 jobs:
   ci:
