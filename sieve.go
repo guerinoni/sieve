@@ -29,6 +29,7 @@ func newNode[K comparable, V any](key K, value V) *node[K, V] {
 		prev:    nil,
 		next:    nil,
 		visited: false,
+		access:  time.Time{},
 	}
 }
 
@@ -71,6 +72,7 @@ func New[K comparable, V any](size int) *Cache[K, V] {
 		m:        make(map[K]*node[K, V]),
 		capacity: size,
 		len:      0,
+		ttl:      0,
 		mu:       &sync.Mutex{},
 	}
 }
@@ -87,6 +89,24 @@ func NewSingleThread[K comparable, V any](size int) *Cache[K, V] {
 // Len returns the number of elements in the sieve.
 func (s *Cache[K, V]) Len() int {
 	return s.len
+}
+
+func (s *Cache[K, V]) moveHandBackward() *node[K, V] {
+	if s.hand.prev != nil {
+		return s.hand.prev
+	}
+
+	return s.tail // Wrap around if we reach the head
+}
+
+func (s *Cache[K, V]) evictNode() {
+	for s.hand.visited {
+		s.hand.visited = false // Reset visited flag
+		s.hand = s.moveHandBackward()
+	}
+
+	// Remove the unvisited node
+	s.removeNode(s.hand)
 }
 
 // Set inserts a new key-value pair in the sieve.
@@ -111,46 +131,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 
 	// cache is full
 	if s.Len() == s.capacity {
-		h := s.hand
-
-		for h.visited {
-			// don't evict the node, just mark it as not visited
-			h.visited = false
-
-			// move hand torwards the head
-			h = h.prev
-
-			// wrap around if we go beyond the head
-			if h == nil {
-				h = s.tail
-			}
-		}
-
-		s.hand = h.prev
-
-		if s.hand == nil {
-			s.hand = s.tail // Wrap to the end if we go beyond the head
-		}
-
-		if h.next != nil {
-			h.next.prev = h.prev
-		} else { // so we are the last node
-			s.tail = h.prev
-		}
-
-		if h.prev != nil {
-			h.prev.next = h.next
-		} else { // so we are the first node
-			s.hand = h.next
-		}
-
-		if s.head == h {
-			s.head = h.next
-		}
-
-		delete(s.m, h.key)
-
-		s.len--
+		s.evictNode()
 	}
 
 	n := newNode(key, value)
@@ -185,80 +166,98 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	}
 }
 
+func (s *Cache[K, V]) isExpired(n *node[K, V]) bool {
+	return s.ttl > 0 && now().Sub(n.access) > s.ttl
+}
+
 // Get returns the value associated with the key.
 // If the key does not exist, it returns zero value an false, otherwise the value and true.
 func (s *Cache[K, V]) Get(key K) (V, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if n, ok := s.m[key]; ok {
-		// mark the node visited
-		n.visited = true
+	var zeroValue V
 
-		if s.ttl > 0 {
-			if now().Sub(n.access) > s.ttl {
-				if s.len == 1 {
-					// just reset everything
-					s.hand = nil
-					s.head = nil
-					s.tail = nil
-				}
+	n, ok := s.m[key]
 
-				if s.len == 2 {
-					if s.head == n {
-						s.head = s.tail
-					} else { // so n == s.tail
-						s.tail = s.head
-					}
-
-					s.hand = s.tail
-				}
-
-				if s.len >= 3 {
-					// remove from the linked list
-
-					switch n {
-					case s.head:
-						n.next.prev = nil
-						s.head = n.next
-					case s.tail:
-						if s.hand == n {
-							s.hand = n.prev
-						}
-
-						n.prev.next = nil
-						s.tail = n.prev
-					default:
-						if s.hand == n {
-							s.hand = n.prev
-						}
-
-						n.prev.next = n.next
-						n.next.prev = n.prev
-					}
-				}
-
-				// remove the node from the cache
-				delete(s.m, n.key)
-
-				// decrease length
-				s.len--
-
-				var v V // zero value
-
-				return v, false
-			}
-
-			// update the access time
-			n.access = now()
-		}
-
-		return n.value, true
+	if !ok {
+		return zeroValue, false
 	}
 
-	var v V // zero value
+	// mark the node visited
+	n.visited = true
 
-	return v, false
+	if s.isExpired(n) {
+		s.removeNode(n)
+
+		return zeroValue, false
+	}
+
+	// update the access time
+	n.access = now()
+
+	return n.value, true
+}
+
+func (s *Cache[K, V]) removeNode(n *node[K, V]) {
+	// Handle special cases for length 1 or 2
+	if s.len == 1 {
+		s.resetCache()
+
+		return
+	}
+
+	if s.len == 2 {
+		s.updateForTwoNodes(n)
+
+		return
+	}
+
+	// Handle general case for length >= 3
+	s.unlinkNode(n)
+
+	// Remove from the cache and adjust length
+	delete(s.m, n.key)
+	s.len--
+}
+
+func (s *Cache[K, V]) unlinkNode(n *node[K, V]) {
+	switch {
+	case n == s.head:
+		s.head = n.next
+		n.next.prev = nil
+	case n == s.tail:
+		if s.hand == n {
+			s.hand = n.prev
+		}
+		s.tail = n.prev
+		n.prev.next = nil
+	default:
+		if s.hand == n {
+			s.hand = n.prev
+		}
+		n.prev.next = n.next
+		n.next.prev = n.prev
+	}
+}
+
+func (s *Cache[K, V]) updateForTwoNodes(n *node[K, V]) {
+	if s.head == n {
+		s.head = s.tail
+	} else {
+		s.tail = s.head
+	}
+	s.hand = s.tail
+	delete(s.m, n.key)
+	s.len--
+}
+
+func (s *Cache[K, V]) resetCache() {
+	s.hand = nil
+	s.head = nil
+	s.tail = nil
+	s.len = 0
+	s.m = make(map[K]*node[K, V])
 }
 
 // Flush removes all elements from the sieve and dealloc the internal structs.

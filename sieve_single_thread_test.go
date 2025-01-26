@@ -2,7 +2,6 @@ package sieve_test
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"testing"
 
@@ -37,7 +36,7 @@ func TestPanicWithSizeLessThanZeroSingleThread(t *testing.T) {
 	sieve.NewSingleThread[string, int](-10)
 }
 
-func TestEasySingleThread(t *testing.T) {
+func TestEasySingleThread(t *testing.T) { //nolint: cyclop
 	s := sieve.NewSingleThread[int, string](2)
 	if s.Len() != 0 {
 		t.Errorf("expected length 0, got %d", s.Len())
@@ -166,7 +165,7 @@ func TestHandWrapAroundSingleThread(t *testing.T) {
 	s.Set(5, "five")
 }
 
-func TestMoreComplexSingleThread(t *testing.T) {
+func TestMoreComplexSingleThread(t *testing.T) { //nolint: dupl
 	s := sieve.NewSingleThread[int, struct{}](4)
 	s.Set(7, struct{}{})
 	s.Set(7, struct{}{})
@@ -210,7 +209,7 @@ func BenchmarkSimpleSingleThread(b *testing.B) {
 
 	s := sieve.NewSingleThread[int, string](10)
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		s.Set(i, "one")
 	}
 }
@@ -224,7 +223,7 @@ func BenchmarkBigInputSingleThread(b *testing.B) {
 	file := "./examples/input"
 	f, err := os.Open(file)
 	if err != nil {
-		fmt.Println(err)
+		b.Errorf("error opening file: %v", err)
 
 		return
 	}

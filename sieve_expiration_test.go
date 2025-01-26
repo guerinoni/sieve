@@ -3,7 +3,6 @@ package sieve
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -123,10 +122,10 @@ func TestTwoElementWithTLL(t *testing.T) {
 	})
 }
 
-func TestThreeElementWithTTL(t *testing.T) {
+func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
 	s := New[int, struct{}](4).WithTTL(1 * time.Second)
 
-	t.Run("first evict head", func(t *testing.T) {
+	t.Run("first evict head", func(t *testing.T) { //nolint: dupl
 		// fake now
 		sec := 1
 		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
@@ -172,7 +171,7 @@ func TestThreeElementWithTTL(t *testing.T) {
 
 	s.Flush()
 
-	t.Run("first evict middle item", func(t *testing.T) {
+	t.Run("first evict middle item", func(t *testing.T) { //nolint: dupl
 		// fake now
 		sec := 1
 		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
@@ -271,8 +270,6 @@ func TestMoreElementWithTTL(t *testing.T) {
 		// 8 is evicted
 		s.Set(11, struct{}{}) // 11 10 9 7
 
-		fmt.Println(s.hand.key)
-
 		sec = 3
 		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
 
@@ -289,7 +286,7 @@ func BenchmarkSimpleWithTTL(b *testing.B) {
 
 	s := NewSingleThread[int, string](10).WithTTL(100 * time.Millisecond)
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		s.Set(i, "one")
 	}
 }
@@ -299,7 +296,7 @@ func BenchmarkSimpleConcurrentWithTTL(b *testing.B) {
 	b.ReportAllocs()
 
 	s := New[int, string](10).WithTTL(100 * time.Millisecond)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		go func(i int) {
 			s.Set(i, "one")
 		}(i)
@@ -319,7 +316,7 @@ func BenchmarkBigInputWithTTL(b *testing.B) {
 	file := "./examples/input"
 	f, err := os.Open(file)
 	if err != nil {
-		fmt.Println(err)
+		b.Errorf("could not open file %s: %v", file, err)
 
 		return
 	}

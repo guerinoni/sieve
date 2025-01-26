@@ -2,7 +2,6 @@ package sieve_test
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"testing"
 
@@ -41,7 +40,7 @@ func TestPanicWithSizeLessThanZero(t *testing.T) {
 
 const one = "one"
 
-func TestEasy(t *testing.T) {
+func TestEasy(t *testing.T) { //nolint: cyclop
 	s := sieve.New[int, string](2)
 	if s.Len() != 0 {
 		t.Errorf("expected length 0, got %d", s.Len())
@@ -170,7 +169,7 @@ func TestHandWrapAround(t *testing.T) {
 	s.Set(5, "five")
 }
 
-func TestMoreComplex(t *testing.T) {
+func TestMoreComplex(t *testing.T) { //nolint: dupl
 	s := sieve.New[int, struct{}](4)
 	s.Set(7, struct{}{})
 	s.Set(7, struct{}{})
@@ -214,7 +213,7 @@ func BenchmarkSimple(b *testing.B) {
 
 	s := sieve.New[int, string](10)
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		s.Set(i, one)
 	}
 }
@@ -224,7 +223,7 @@ func BenchmarkSimpleConcurrent(b *testing.B) {
 	b.ReportAllocs()
 
 	s := sieve.New[int, string](10)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		go func(i int) {
 			s.Set(i, one)
 		}(i)
@@ -244,7 +243,7 @@ func BenchmarkBigInput(b *testing.B) {
 	file := "./examples/input"
 	f, err := os.Open(file)
 	if err != nil {
-		fmt.Println(err)
+		b.Errorf("could not open file %s: %v", file, err)
 
 		return
 	}
