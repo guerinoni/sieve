@@ -87,7 +87,7 @@ Promotion and demotion are internal cache operations designed to maintain an eff
 
 Running the [example](./examples/main.go) you can see it is compared to 
  - [golang-lru](github.com/hashicorp/golang-lru)
- - [golang-fifo]("github.com/scalalang2/golang-fifo")
+ - [golang-fifo](github.com/scalalang2/golang-fifo)
 ```
 Miss count sieve: 4051
 Miss count golang-fifo: 498692
