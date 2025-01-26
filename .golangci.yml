@@ -1,0 +1,13 @@
+linters:
+  enable-all: true
+  disable:
+    - wsl
+    - varnamelen
+    - testpackage
+    - paralleltest
+    - mnd
+    - ireturn
+    - gochecknoglobals
+    - depguard
+    - funlen
+    - lll
