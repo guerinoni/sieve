@@ -12,6 +12,6 @@ jobs:
         uses: golangci/golangci-lint-action@master
       - uses: actions/setup-go@main
         with:
-          go-version-file: go.mod
+          go-version: 'stable'
       - name: Test
         run: go test -race -v ./...
