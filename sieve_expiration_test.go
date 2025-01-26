@@ -280,7 +280,7 @@ func TestMoreElementWithTTL(t *testing.T) {
 	})
 }
 
-// BenchmarkSimpleWithTTL-12               14060752                84.67 ns/op           81 B/op          1 allocs/op.
+// BenchmarkSimpleWithTTL-12               14450936                83.52 ns/op           82 B/op          1 allocs/op
 func BenchmarkSimpleWithTTL(b *testing.B) {
 	b.ReportAllocs()
 
@@ -291,7 +291,7 @@ func BenchmarkSimpleWithTTL(b *testing.B) {
 	}
 }
 
-// BenchmarkSimpleConcurrentWithTTL-12     1000000000               0.0000306 ns/op               0 B/op          0 allocs/op.
+// BenchmarkSimpleConcurrentWithTTL-12     1000000000               0.0000231 ns/op               0 B/op          0 allocs/op.
 func BenchmarkSimpleConcurrentWithTTL(b *testing.B) {
 	b.ReportAllocs()
 
@@ -307,7 +307,7 @@ func BenchmarkSimpleConcurrentWithTTL(b *testing.B) {
 	}
 }
 
-// BenchmarkBigInputWithTTL-12             1000000000               0.05447 ns/op         0 B/op          0 allocs/op.
+// BenchmarkBigInputWithTTL-12             1000000000               0.05654 ns/op         0 B/op          0 allocs/op.
 func BenchmarkBigInputWithTTL(b *testing.B) {
 	b.ReportAllocs()
 
