@@ -108,6 +108,8 @@ func (s *Cache[K, V]) Set(key K, value V) {
 		// update the value
 		v.value = value
 
+		// update the access time
+		v.access = now()
 		return
 	}
 
