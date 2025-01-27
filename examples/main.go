@@ -13,7 +13,7 @@ import (
 )
 
 const fileName = "input"
-const capacity = 30
+const capacity = 10
 
 func main() {
 	// printMemoryUsage()
@@ -38,30 +38,25 @@ func main() {
 
 	go func() {
 		missCountSieve := doSieve(data)
-		fmt.Printf("Miss count sieve: %d\n", missCountSieve)
+		fmt.Printf("Miss count sieve:		%d\n", missCountSieve)
 		wg.Done()
 	}()
 
 	go func() {
 		missCountLRU := doLRU(data)
-		fmt.Printf("Miss count golang-lru: %d\n", missCountLRU)
+		fmt.Printf("Miss count golang-lru:		%d\n", missCountLRU)
 		wg.Done()
 	}()
 
 	go func() {
 		missCountGolangFifo := doGolangFifo(data)
-		fmt.Printf("Miss count golang-fifo: %d\n", missCountGolangFifo)
+		fmt.Printf("Miss count golang-fifo:		%d\n", missCountGolangFifo)
 		wg.Done()
 	}()
 
 	wg.Wait()
 
-	printMemoryUsage()
-
-	// output:
-	// Miss count sieve: 4051
-	// Miss count golang-fifo: 498692
-	// Miss count golang-lru: 621835
+	// printMemoryUsage()
 }
 
 func doSieve(intput []string) int {
