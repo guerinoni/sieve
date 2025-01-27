@@ -94,8 +94,9 @@ func (s *Cache[K, V]) Len() int {
 // Set inserts a new key-value pair in the sieve.
 // If the key already exists, it does nothing.
 // The order of the insert will be something like:
-// [head] <- [node] <- [node] <- ... <- [tail]
-// And the moving direction during eviction algorithm is from tail to head.
+// [head] -> [node] -> [node] -> ... -> [tail]
+// The hand pointer is moving from the tail to the head.
+// The `next` it to the tail, and the `prev` is to the head.
 func (s *Cache[K, V]) Set(key K, value V) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -110,6 +111,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 
 		// update the access time
 		v.access = now()
+
 		return
 	}
 
