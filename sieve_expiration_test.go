@@ -280,6 +280,33 @@ func TestMoreElementWithTTL(t *testing.T) {
 	})
 }
 
+func TestSetWithAllExpired(t *testing.T) {
+	s := New[int, struct{}](4).WithTTL(1 * time.Second)
+	sec := 1
+	now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+
+	s.Set(7, struct{}{})
+	s.Set(8, struct{}{})
+	s.Set(9, struct{}{})
+	s.Set(10, struct{}{})
+
+	s.Get(7) // now hand should start after 7, becuase 7 is marked `visited`
+
+	sec = 3
+	now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+
+	// now all keys are expired so the first key should be evicted
+
+	// 7 should be evicted also if it has `visited` set to true, becuase the key is expired,
+	// so the `visited` flag is not relevant anymore
+	s.Set(11, struct{}{})
+
+	expected := `[11: {} -> 10: {} -> 9: {} -> 8: {}]`
+	if s.String() != expected {
+		t.Errorf("expected %s, got %s", expected, s.String())
+	}
+}
+
 func BenchmarkSimpleWithTTL(b *testing.B) {
 	b.ReportAllocs()
 

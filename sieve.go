@@ -156,6 +156,11 @@ func (s *Cache[K, V]) evictNode() {
 	h := s.hand
 
 	for h.visited {
+		// if the node is visited but is expired, then we can evict it
+		if s.ttl > 0 && now().Sub(h.access) > s.ttl {
+			break
+		}
+
 		// don't evict the node, just mark it as not visited
 		s.hand.visited = false
 
@@ -271,6 +276,9 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 
 	// update the access time
 	n.access = now()
+
+	// mark the node as visited
+	n.visited = true
 
 	return n.value, true
 }
