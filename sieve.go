@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -45,8 +46,8 @@ type Cache[K comparable, V any] struct {
 	// m is a map that holds the key-value pairs.
 	m map[K]*node[K, V]
 
-	capacity int
-	len      int
+	capacity int32
+	len      atomic.Int32
 	ttl      time.Duration
 
 	mu sync.Locker
@@ -62,7 +63,7 @@ func (s *Cache[K, V]) WithTTL(ttl time.Duration) *Cache[K, V] {
 // New returns a new sieve.
 // The size parameter is the maximum number of elements that the sieve can hold.
 // If the size is less than or equal to zero, it panics.
-func New[K comparable, V any](size int) *Cache[K, V] {
+func New[K comparable, V any](size int32) *Cache[K, V] {
 	if size <= 0 {
 		panic("sieve: size must be greater than zero")
 	}
@@ -73,14 +74,14 @@ func New[K comparable, V any](size int) *Cache[K, V] {
 		hand:     nil,
 		m:        make(map[K]*node[K, V]),
 		capacity: size,
-		len:      0,
+		len:      atomic.Int32{},
 		ttl:      0,
 		mu:       &sync.Mutex{},
 	}
 }
 
 // NewSingleThread returns a new sieve that is safe for single-threaded use.
-func NewSingleThread[K comparable, V any](size int) *Cache[K, V] {
+func NewSingleThread[K comparable, V any](size int32) *Cache[K, V] {
 	c := New[K, V](size)
 
 	c.mu = noopMutex{}
@@ -89,8 +90,8 @@ func NewSingleThread[K comparable, V any](size int) *Cache[K, V] {
 }
 
 // Len returns the number of elements in the sieve.
-func (s *Cache[K, V]) Len() int {
-	return s.len
+func (s *Cache[K, V]) Len() int32 {
+	return s.len.Load()
 }
 
 // Set inserts a new key-value pair in the sieve.
@@ -133,7 +134,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	// insert into the cache
 	s.m[key] = n
 
-	s.len++
+	s.len.Add(1)
 
 	// point to the current head
 	n.next = s.head
@@ -204,18 +205,22 @@ func (s *Cache[K, V]) evictNode() {
 
 	delete(s.m, h.key)
 
-	s.len--
+	s.len.Add(-1)
 }
 
 func (s *Cache[K, V]) removeNodeFromLinkedList(n *node[K, V]) {
-	if s.len == 1 {
+	l := s.Len()
+
+	if l == 1 {
 		// just reset everything
 		s.hand = nil
 		s.head = nil
 		s.tail = nil
+
+		return
 	}
 
-	if s.len == 2 {
+	if l == 2 {
 		if s.head == n {
 			s.head = s.tail
 		} else { // so n == s.tail
@@ -223,30 +228,30 @@ func (s *Cache[K, V]) removeNodeFromLinkedList(n *node[K, V]) {
 		}
 
 		s.hand = s.tail
+
+		return
 	}
 
-	if s.len >= 3 {
-		// remove from the linked list
+	// remove from the linked list
 
-		switch n {
-		case s.head:
-			n.next.prev = nil
-			s.head = n.next
-		case s.tail:
-			if s.hand == n {
-				s.hand = n.prev
-			}
-
-			n.prev.next = nil
-			s.tail = n.prev
-		default:
-			if s.hand == n {
-				s.hand = n.prev
-			}
-
-			n.prev.next = n.next
-			n.next.prev = n.prev
+	switch n {
+	case s.head:
+		n.next.prev = nil
+		s.head = n.next
+	case s.tail:
+		if s.hand == n {
+			s.hand = n.prev
 		}
+
+		n.prev.next = nil
+		s.tail = n.prev
+	default:
+		if s.hand == n {
+			s.hand = n.prev
+		}
+
+		n.prev.next = n.next
+		n.next.prev = n.prev
 	}
 }
 
@@ -273,7 +278,7 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 		delete(s.m, n.key)
 
 		// decrease length
-		s.len--
+		s.len.Add(-1)
 
 		return zeroValue, false
 	}
@@ -296,7 +301,7 @@ func (s *Cache[K, V]) Flush() {
 	s.tail = nil
 	s.hand = nil
 	s.m = make(map[K]*node[K, V])
-	s.len = 0
+	s.len = atomic.Int32{}
 }
 
 type noopMutex struct{}
@@ -308,7 +313,7 @@ func (noopMutex) Unlock() {}
 // It is a variable to make it easier to mock in tests.
 var now = time.Now
 
-func (s Cache[K, V]) String() string {
+func (s *Cache[K, V]) String() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
