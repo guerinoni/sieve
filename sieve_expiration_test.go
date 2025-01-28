@@ -290,14 +290,14 @@ func TestSetWithAllExpired(t *testing.T) {
 	s.Set(9, struct{}{})
 	s.Set(10, struct{}{})
 
-	s.Get(7) // now hand should start after 7, becuase 7 is marked `visited`
+	s.Get(7) // now hand should start after 7, because 7 is marked `visited`
 
 	sec = 3
 	now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
 
 	// now all keys are expired so the first key should be evicted
 
-	// 7 should be evicted also if it has `visited` set to true, becuase the key is expired,
+	// 7 should be evicted also if it has `visited` set to true, because the key is expired,
 	// so the `visited` flag is not relevant anymore
 	s.Set(11, struct{}{})
 

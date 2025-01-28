@@ -103,6 +103,8 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	atNow := now()
+
 	// key already exists
 	if v, ok := s.m[key]; ok {
 		// mark the node visited
@@ -112,7 +114,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 		v.value = value
 
 		// update the access time
-		v.access = now()
+		v.access = atNow
 
 		return
 	}
@@ -125,7 +127,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	n := newNode(key, value)
 
 	if s.ttl > 0 {
-		n = n.withTTL(now())
+		n = n.withTTL(atNow)
 	}
 
 	// insert into the cache
@@ -157,9 +159,11 @@ func (s *Cache[K, V]) Set(key K, value V) {
 func (s *Cache[K, V]) evictNode() {
 	h := s.hand
 
+	atNow := now()
+
 	for h.visited {
 		// if the node is visited but is expired, then we can evict it
-		if s.ttl > 0 && now().Sub(h.access) > s.ttl {
+		if s.ttl > 0 && atNow.Sub(h.access) > s.ttl {
 			break
 		}
 
@@ -201,10 +205,6 @@ func (s *Cache[K, V]) evictNode() {
 	delete(s.m, h.key)
 
 	s.len--
-}
-
-func (s *Cache[K, V]) isExpired(n *node[K, V]) bool {
-	return s.ttl > 0 && now().Sub(n.access) > s.ttl
 }
 
 func (s *Cache[K, V]) removeNodeFromLinkedList(n *node[K, V]) {
@@ -264,7 +264,9 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 		return zeroValue, false
 	}
 
-	if s.isExpired(n) {
+	atNow := now()
+
+	if s.ttl > 0 && atNow.Sub(n.access) > s.ttl {
 		s.removeNodeFromLinkedList(n)
 
 		// remove the node from the cache
@@ -277,7 +279,7 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 	}
 
 	// update the access time
-	n.access = now()
+	n.access = atNow
 
 	// mark the node as visited
 	n.visited = true
