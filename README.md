@@ -6,6 +6,8 @@ In memory cache with sieve eviction algorithm in pure Go.
 - [x] opt-out safety to use in single thread with more performance
 - [x] zero deps
 - [x] no CGO
+- [x] coverage 100%
+- [x] opt-in TTL (evict expired on get/set)
 
 ## Usage
 
@@ -89,9 +91,9 @@ Running the [example](./examples/main.go) you can see it is compared to
  - [golang-lru](github.com/hashicorp/golang-lru)
  - [golang-fifo](github.com/scalalang2/golang-fifo)
 ```
-Miss count sieve:               817746
-Miss count golang-lru:          789421
-Miss count golang-fifo:         656714
+Miss count sieve:               338193
+Miss count golang-fifo:         328766
+Miss count golang-lru:          424727
 ```
 
 Running 1 cache at time (using commented code) the result of memory allocated are the following:
@@ -100,20 +102,20 @@ golang-lru
 ```
 # before workload
 
-Alloc = 185 KB
-TotalAlloc = 185 KB
-Sys = 6803 KB
+Alloc = 179 KB
+TotalAlloc = 179 KB
+Sys = 6547 KB
 NumGC = 0
 ------
 
-Miss count golang-lru: 621835
+Miss count golang-lru: 424727
 
 # after workload
 
-Alloc = 39557 KB
-TotalAlloc = 165475 KB
-Sys = 61779 KB
-NumGC = 15
+Alloc = 22740 KB
+TotalAlloc = 129156 KB
+Sys = 57299 KB
+NumGC = 14
 ------
 ```
 
@@ -121,20 +123,20 @@ golang-fifo
 ```
 # before workfload
 
-Alloc = 185 KB
-TotalAlloc = 185 KB
-Sys = 6291 KB
+Alloc = 180 KB
+TotalAlloc = 180 KB
+Sys = 6547 KB
 NumGC = 0
 ------
 
-Miss count golang-fifo:         656714
+Miss count golang-fifo:         328766
 
 # after workload
 
-Alloc = 34376 KB
-TotalAlloc = 180200 KB
-Sys = 61715 KB
-NumGC = 16
+Alloc = 28752 KB
+TotalAlloc = 134146 KB
+Sys = 62227 KB
+NumGC = 14
 ------
 ```
 
@@ -142,19 +144,19 @@ sieve:
 ```
 # before workload
 
-Alloc = 185 KB
-TotalAlloc = 185 KB
-Sys = 6547 KB
+Alloc = 179 KB
+TotalAlloc = 179 KB
+Sys = 6291 KB
 NumGC = 0
 ------
 
-Miss count sieve: 4051
+Miss count sieve: 338193
 
 # after workload
 
-Alloc = 27535 KB
-TotalAlloc = 153302 KB
-Sys = 62035 KB
-NumGC = 15
+Alloc = 27882 KB
+TotalAlloc = 114270 KB
+Sys = 61331 KB
+NumGC = 11
 ------
 ```

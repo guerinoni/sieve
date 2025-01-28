@@ -13,7 +13,7 @@ import (
 )
 
 const fileName = "input"
-const capacity = 10
+const capacity = 100
 
 func main() {
 	// printMemoryUsage()
