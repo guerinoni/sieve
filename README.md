@@ -154,8 +154,8 @@ Miss count sieve: 338193
 
 # after workload
 
-Alloc = 27882 KB
-TotalAlloc = 114270 KB
+Alloc = 27875 KB
+TotalAlloc = 114269 KB
 Sys = 61331 KB
 NumGC = 11
 ------

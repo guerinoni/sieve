@@ -3,13 +3,13 @@ goos: darwin
 goarch: arm64
 pkg: github.com/guerinoni/sieve
 cpu: Apple M3 Pro
-BenchmarkSimpleWithTTL-12              	64322054	        93.07 ns/op	      82 B/op	       1 allocs/op
-BenchmarkSimpleConcurrentWithTTL-12    	1000000000	         0.0000245 ns/op	       0 B/op	       0 allocs/op
-BenchmarkBigInputWithTTL-12            	1000000000	         0.04937 ns/op	       0 B/op	       0 allocs/op
-BenchmarkSimple-12                     	64042352	        93.88 ns/op	      82 B/op	       1 allocs/op
-BenchmarkSimpleConcurrent-12           	1000000000	         0.0000264 ns/op	       0 B/op	       0 allocs/op
-BenchmarkBigInput-12                   	1000000000	         0.04218 ns/op	       0 B/op	       0 allocs/op
-BenchmarkSimpleSingleThread-12         	64408204	        93.42 ns/op	      82 B/op	       1 allocs/op
-BenchmarkBigInputSingleThread-12       	1000000000	         0.04369 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSimpleWithTTL-12              	63004701	        94.24 ns/op	      81 B/op	       1 allocs/op
+BenchmarkSimpleConcurrentWithTTL-12    	1000000000	         0.0000328 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBigInputWithTTL-12            	1000000000	         0.04723 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSimple-12                     	63935722	        93.48 ns/op	      81 B/op	       1 allocs/op
+BenchmarkSimpleConcurrent-12           	1000000000	         0.0000282 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBigInput-12                   	1000000000	         0.04353 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSimpleSingleThread-12         	60976874	        93.86 ns/op	      82 B/op	       1 allocs/op
+BenchmarkBigInputSingleThread-12       	1000000000	         0.04064 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	github.com/guerinoni/sieve	24.180s
+ok  	github.com/guerinoni/sieve	23.862s
