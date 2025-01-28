@@ -1,0 +1,15 @@
+Running benchmarks...
+goos: darwin
+goarch: arm64
+pkg: github.com/guerinoni/sieve
+cpu: Apple M3 Pro
+BenchmarkSimpleWithTTL-12              	14178810	        83.35 ns/op	      81 B/op	       1 allocs/op
+BenchmarkSimpleConcurrentWithTTL-12    	1000000000	         0.0000387 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBigInputWithTTL-12            	1000000000	         0.05502 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSimple-12                     	15311289	        77.38 ns/op	      82 B/op	       1 allocs/op
+BenchmarkSimpleConcurrent-12           	1000000000	         0.0000213 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBigInput-12                   	1000000000	         0.04320 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSimpleSingleThread-12         	15498686	        77.20 ns/op	      82 B/op	       1 allocs/op
+BenchmarkBigInputSingleThread-12       	1000000000	         0.04107 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/guerinoni/sieve	6.232s

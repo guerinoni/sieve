@@ -203,7 +203,6 @@ func TestMoreComplexSingleThread(t *testing.T) { //nolint: dupl
 	}
 }
 
-// BenchmarkSimpleSingleThread-12          15134070                78.93 ns/op           81 B/op          1 allocs/op.
 func BenchmarkSimpleSingleThread(b *testing.B) {
 	b.ReportAllocs()
 
@@ -214,7 +213,6 @@ func BenchmarkSimpleSingleThread(b *testing.B) {
 	}
 }
 
-// BenchmarkBigInputSingleThread-12        1000000000               0.04147 ns/op         0 B/op          0 allocs/op.
 func BenchmarkBigInputSingleThread(b *testing.B) {
 	b.ReportAllocs()
 
