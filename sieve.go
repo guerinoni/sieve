@@ -1,6 +1,8 @@
 package sieve
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -303,3 +305,24 @@ func (noopMutex) Unlock() {}
 // now is real `time.Now` function.
 // It is a variable to make it easier to mock in tests.
 var now = time.Now
+
+func (s Cache[K, V]) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var str strings.Builder
+
+	str.WriteString("[")
+
+	for n := s.head; n != nil; n = n.next {
+		str.WriteString(fmt.Sprintf("%v: %v", n.key, n.value))
+
+		if n.next != nil {
+			str.WriteString(" -> ")
+		}
+	}
+
+	str.WriteString("]")
+
+	return str.String()
+}
