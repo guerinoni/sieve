@@ -48,8 +48,14 @@ coverage-html: coverage
 .PHONY: bench
 bench:
 	echo Running benchmarks...
-	go test -bench=. $(PKG)
+	go test -bench=. -benchtime=5s -benchmem $(PKG)
 
+.PHONY: bench-cmp
+bench-cmp:
+	echo install benchstat...
+	go install golang.org/x/perf/cmd/benchstat@latest
+	go test -bench=. -benchtime=5s -benchmem $(PKG) > new.txt
+	benchstat benches.txt new.txt
 
 .PHONY: lint
 lint:
