@@ -211,6 +211,12 @@ func (s *Cache[K, V]) evictNode() {
 func (s *Cache[K, V]) removeNodeFromLinkedList(n *node[K, V]) {
 	l := s.Len()
 
+	// help the GC to collect the node
+	defer func() {
+		n.prev = nil
+		n.next = nil
+	}()
+
 	if l == 1 {
 		// just reset everything
 		s.hand = nil
