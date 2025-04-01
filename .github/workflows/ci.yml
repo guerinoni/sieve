@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@main
       - name: lint
-        uses: golangci/golangci-lint-action@master
+        uses: golangci/golangci-lint-action@v7.0.0
       - uses: actions/setup-go@main
         with:
           go-version: "stable"
