@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
   schedule:
     - cron: "0 0 */10 * *" # Runs at midnight UTC every 10th day of the month
@@ -14,6 +15,6 @@ jobs:
         uses: golangci/golangci-lint-action@master
       - uses: actions/setup-go@main
         with:
-          go-version: 'stable'
+          go-version: "stable"
       - name: Test
         run: go test -race -v ./...
