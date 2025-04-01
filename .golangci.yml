@@ -1,5 +1,6 @@
+version: "2"
 linters:
-  enable-all: true
+  default: all
   disable:
     - wsl
     - varnamelen
@@ -11,3 +12,9 @@ linters:
     - depguard
     - funlen
     - lll
+
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
