@@ -11,6 +11,7 @@ import (
 )
 
 const panicError = "sieve: size must be greater than zero"
+const testInputFile = "./examples/input"
 
 func TestPanicWithSizeZero(t *testing.T) {
 	defer func() {
@@ -49,16 +50,19 @@ func TestEasy(t *testing.T) { //nolint: cyclop
 	}
 
 	s.Set(1, one)
+
 	if s.Len() != 1 {
 		t.Errorf("expected length 1, got %d", s.Len())
 	}
 
 	s.Set(1, one) // duplicate
+
 	if s.Len() != 1 {
 		t.Errorf("expected length 1 after duplicate, got %d", s.Len())
 	}
 
 	s.Set(2, "two")
+
 	if s.Len() != 2 {
 		t.Errorf("expected length 2, got %d", s.Len())
 	}
@@ -67,6 +71,7 @@ func TestEasy(t *testing.T) { //nolint: cyclop
 	if ok {
 		t.Errorf("expected key 3 to not exist, but it does")
 	}
+
 	if v != "" {
 		t.Errorf("expected value for key 3 to be '', got '%s'", v)
 	}
@@ -75,6 +80,7 @@ func TestEasy(t *testing.T) { //nolint: cyclop
 	if !ok {
 		t.Errorf("expected key 1 to exist, but it does not")
 	}
+
 	if v != one {
 		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
 	}
@@ -82,6 +88,7 @@ func TestEasy(t *testing.T) { //nolint: cyclop
 	// now we start evicting
 
 	s.Set(3, "three")
+
 	if s.Len() != 2 {
 		t.Errorf("expected length 2 after eviction, got %d", s.Len())
 	}
@@ -90,6 +97,7 @@ func TestEasy(t *testing.T) { //nolint: cyclop
 	if !ok {
 		t.Errorf("expected key 1 to exist, but it does not")
 	}
+
 	if v != one {
 		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
 	}
@@ -98,6 +106,7 @@ func TestEasy(t *testing.T) { //nolint: cyclop
 	if ok {
 		t.Errorf("expected key 2 to not exist, but it does")
 	}
+
 	if v != "" {
 		t.Errorf("expected value for key 2 to be '', got '%s'", v)
 	}
@@ -113,6 +122,7 @@ func TestAllAreVisited(t *testing.T) {
 	// so now we have all nodes visited
 
 	s.Set(3, "three")
+
 	if s.Len() != 2 {
 		t.Errorf("expected length 2 after eviction, got %d", s.Len())
 	}
@@ -121,6 +131,7 @@ func TestAllAreVisited(t *testing.T) {
 	if !ok {
 		t.Errorf("expected key 3 to exist, but it does not")
 	}
+
 	if v != "three" {
 		t.Errorf("expected value for key 3 to be 'three', got '%s'", v)
 	}
@@ -129,6 +140,7 @@ func TestAllAreVisited(t *testing.T) {
 	if !ok {
 		t.Errorf("expected key 2 to exist, but it does not")
 	}
+
 	if v != "two" {
 		t.Errorf("expected value for key 2 to be 'two', got '%s'", v)
 	}
@@ -137,6 +149,7 @@ func TestAllAreVisited(t *testing.T) {
 	if ok {
 		t.Errorf("expected key 1 to not exist, but it does")
 	}
+
 	if v != "" {
 		t.Errorf("expected value for key 1 to be '', got '%s'", v)
 	}
@@ -147,18 +160,21 @@ func TestHandWrapAround(t *testing.T) {
 
 	s.Set(1, one)
 	s.Set(2, "two")
+
 	_, ok := s.Get(1)
 	if !ok {
 		t.Errorf("expected to find 1")
 	}
 
 	s.Set(3, "three")
+
 	_, ok = s.Get(3)
 	if !ok {
 		t.Errorf("expected to find 3")
 	}
 
 	s.Set(4, "four")
+
 	_, ok = s.Get(3)
 	if !ok {
 		t.Errorf("expected to find 3")
@@ -168,6 +184,7 @@ func TestHandWrapAround(t *testing.T) {
 	if !ok {
 		t.Errorf("expected to find 4")
 	}
+
 	s.Set(5, "five")
 }
 
@@ -223,6 +240,7 @@ func BenchmarkSimpleConcurrent(b *testing.B) {
 	b.ReportAllocs()
 
 	s := sieve.New[int, string](10)
+
 	for i := range 100 {
 		go func(i int) {
 			s.Set(i, one)
@@ -239,7 +257,8 @@ func BenchmarkBigInput(b *testing.B) {
 
 	s := sieve.New[string, string](1000)
 
-	file := "./examples/input"
+	file := testInputFile
+
 	f, err := os.Open(file)
 	if err != nil {
 		b.Errorf("could not open file %s: %v", file, err)
@@ -274,7 +293,8 @@ func BenchmarkBigInputLRU(b *testing.B) {
 
 	s, _ := lru.New[string, string](1000)
 
-	file := "./examples/input"
+	file := testInputFile
+
 	f, err := os.Open(file)
 	if err != nil {
 		b.Errorf("could not open file %s: %v", file, err)
@@ -309,7 +329,8 @@ func BenchmarkBigInputS3FIFO(b *testing.B) {
 
 	s := s3fifo.New[string, string](1000, 0)
 
-	file := "./examples/input"
+	file := testInputFile
+
 	f, err := os.Open(file)
 	if err != nil {
 		b.Errorf("could not open file %s: %v", file, err)

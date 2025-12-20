@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const testInputFile = "./examples/input"
+
 func TestOneElementWithTTL(t *testing.T) {
 	s := New[int, struct{}](4).WithTTL(1 * time.Second)
 
@@ -129,6 +131,7 @@ func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
 		// fake now
 		sec := 1
 		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+
 		s.Set(7, struct{}{})
 
 		sec = 2
@@ -147,6 +150,7 @@ func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
 		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
 
 		_, ok7 := s.Get(7)
+
 		_, ok8 := s.Get(8)
 		if !ok7 || !ok8 {
 			t.Errorf("expected 7 and 8 keys to be in the cache")
@@ -157,6 +161,7 @@ func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
 
 		{
 			_, ok7 := s.Get(7)
+
 			_, ok8 := s.Get(8)
 			if !ok7 || !ok8 {
 				t.Errorf("expected 7 and 8 keys to be in the cache")
@@ -175,6 +180,7 @@ func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
 		// fake now
 		sec := 1
 		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+
 		s.Set(7, struct{}{})
 
 		sec = 2
@@ -193,6 +199,7 @@ func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
 		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
 
 		_, ok7 := s.Get(7)
+
 		_, ok9 := s.Get(9)
 		if !ok7 || !ok9 {
 			t.Errorf("expected 7 and 9 keys to be in the cache")
@@ -203,6 +210,7 @@ func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
 
 		{
 			_, ok7 := s.Get(7)
+
 			_, ok9 := s.Get(9)
 			if !ok7 || !ok9 {
 				t.Errorf("expected 7 and 8 keys to be in the cache")
@@ -221,6 +229,7 @@ func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
 		// fake now
 		sec := 1
 		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+
 		s.Set(7, struct{}{}) // tail here is 7 since is the first inserted
 
 		sec = 2
@@ -321,6 +330,7 @@ func BenchmarkSimpleConcurrentWithTTL(b *testing.B) {
 	b.ReportAllocs()
 
 	s := New[int, string](10).WithTTL(100 * time.Millisecond)
+
 	for i := range 100 {
 		go func(i int) {
 			s.Set(i, "one")
@@ -338,7 +348,8 @@ func BenchmarkBigInputWithTTL(b *testing.B) {
 
 	s := New[string, string](1000).WithTTL(100 * time.Millisecond)
 
-	file := "./examples/input"
+	file := testInputFile
+
 	f, err := os.Open(file)
 	if err != nil {
 		b.Errorf("could not open file %s: %v", file, err)

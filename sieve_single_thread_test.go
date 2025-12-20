@@ -43,16 +43,19 @@ func TestEasySingleThread(t *testing.T) { //nolint: cyclop
 	}
 
 	s.Set(1, "one")
+
 	if s.Len() != 1 {
 		t.Errorf("expected length 1, got %d", s.Len())
 	}
 
 	s.Set(1, "one") // duplicate
+
 	if s.Len() != 1 {
 		t.Errorf("expected length 1 after duplicate, got %d", s.Len())
 	}
 
 	s.Set(2, "two")
+
 	if s.Len() != 2 {
 		t.Errorf("expected length 2, got %d", s.Len())
 	}
@@ -61,6 +64,7 @@ func TestEasySingleThread(t *testing.T) { //nolint: cyclop
 	if ok {
 		t.Errorf("expected key 3 to not exist, but it does")
 	}
+
 	if v != "" {
 		t.Errorf("expected value for key 3 to be '', got '%s'", v)
 	}
@@ -69,6 +73,7 @@ func TestEasySingleThread(t *testing.T) { //nolint: cyclop
 	if !ok {
 		t.Errorf("expected key 1 to exist, but it does not")
 	}
+
 	if v != "one" {
 		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
 	}
@@ -76,6 +81,7 @@ func TestEasySingleThread(t *testing.T) { //nolint: cyclop
 	// now we start evicting
 
 	s.Set(3, "three")
+
 	if s.Len() != 2 {
 		t.Errorf("expected length 2 after eviction, got %d", s.Len())
 	}
@@ -84,6 +90,7 @@ func TestEasySingleThread(t *testing.T) { //nolint: cyclop
 	if !ok {
 		t.Errorf("expected key 1 to exist, but it does not")
 	}
+
 	if v != "one" {
 		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
 	}
@@ -92,6 +99,7 @@ func TestEasySingleThread(t *testing.T) { //nolint: cyclop
 	if ok {
 		t.Errorf("expected key 2 to not exist, but it does")
 	}
+
 	if v != "" {
 		t.Errorf("expected value for key 2 to be '', got '%s'", v)
 	}
@@ -107,6 +115,7 @@ func TestAllAreVisitedSingleThread(t *testing.T) {
 	// so now we have all nodes visited
 
 	s.Set(3, "three")
+
 	if s.Len() != 2 {
 		t.Errorf("expected length 2 after eviction, got %d", s.Len())
 	}
@@ -115,6 +124,7 @@ func TestAllAreVisitedSingleThread(t *testing.T) {
 	if !ok {
 		t.Errorf("expected key 3 to exist, but it does not")
 	}
+
 	if v != "three" {
 		t.Errorf("expected value for key 3 to be 'three', got '%s'", v)
 	}
@@ -123,6 +133,7 @@ func TestAllAreVisitedSingleThread(t *testing.T) {
 	if !ok {
 		t.Errorf("expected key 2 to exist, but it does not")
 	}
+
 	if v != "two" {
 		t.Errorf("expected value for key 2 to be 'two', got '%s'", v)
 	}
@@ -131,6 +142,7 @@ func TestAllAreVisitedSingleThread(t *testing.T) {
 	if ok {
 		t.Errorf("expected key 1 to not exist, but it does")
 	}
+
 	if v != "" {
 		t.Errorf("expected value for key 1 to be '', got '%s'", v)
 	}
@@ -141,18 +153,21 @@ func TestHandWrapAroundSingleThread(t *testing.T) {
 
 	s.Set(1, "one")
 	s.Set(2, "two")
+
 	_, ok := s.Get(1)
 	if !ok {
 		t.Errorf("expected to find 1")
 	}
 
 	s.Set(3, "three")
+
 	_, ok = s.Get(3)
 	if !ok {
 		t.Errorf("expected to find 3")
 	}
 
 	s.Set(4, "four")
+
 	_, ok = s.Get(3)
 	if !ok {
 		t.Errorf("expected to find 3")
@@ -162,6 +177,7 @@ func TestHandWrapAroundSingleThread(t *testing.T) {
 	if !ok {
 		t.Errorf("expected to find 4")
 	}
+
 	s.Set(5, "five")
 }
 
@@ -218,7 +234,8 @@ func BenchmarkBigInputSingleThread(b *testing.B) {
 
 	s := sieve.NewSingleThread[string, string](1000)
 
-	file := "./examples/input"
+	file := testInputFile
+
 	f, err := os.Open(file)
 	if err != nil {
 		b.Errorf("error opening file: %v", err)
