@@ -14,8 +14,8 @@ In memory cache with sieve eviction algorithm in pure Go.
 ```go
 s := sieve.New[int, string](2)
 
-s.Insert(1, "one")
-s.Insert(2, "two")
+s.Set(1, "one")
+s.Set(2, "two")
 
 v, ok := s.Get(1)
 if !ok {
@@ -30,8 +30,8 @@ _ = v // use value
 ```go
 s := sieve.NewSingleThread[int, string](2)
 
-s.Insert(1, "one")
-s.Insert(2, "two")
+s.Set(1, "one")
+s.Set(2, "two")
 
 v, ok := s.Get(1)
 if !ok {
@@ -48,8 +48,8 @@ This is an opt-in feature for both single and multi thread.
 ```go
 s := sieve.New[int, string](2).WithTTL(1 *time.Second)
 
-s.Insert(1, "one")
-s.Insert(2, "two")
+s.Set(1, "one")
+s.Set(2, "two")
 
 // ... wait 0.5s
 
