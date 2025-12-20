@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/guerinoni/sieve"
+	lru "github.com/hashicorp/golang-lru/v2"
+	s3fifo "github.com/scalalang2/golang-fifo/s3fifo"
 )
 
 const panicError = "sieve: size must be greater than zero"
@@ -236,6 +238,76 @@ func BenchmarkBigInput(b *testing.B) {
 	b.ReportAllocs()
 
 	s := sieve.New[string, string](1000)
+
+	file := "./examples/input"
+	f, err := os.Open(file)
+	if err != nil {
+		b.Errorf("could not open file %s: %v", file, err)
+
+		return
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Split(bufio.ScanLines)
+
+	for read := scanner.Scan(); read; read = scanner.Scan() {
+		d := scanner.Text()
+		if _, ok := s.Get(d); !ok {
+			s.Set(d, d)
+		}
+	}
+}
+
+func BenchmarkSimpleLRU(b *testing.B) {
+	b.ReportAllocs()
+
+	s, _ := lru.New[int, string](10)
+
+	for i := range b.N {
+		s.Add(i, one)
+	}
+}
+
+func BenchmarkBigInputLRU(b *testing.B) {
+	b.ReportAllocs()
+
+	s, _ := lru.New[string, string](1000)
+
+	file := "./examples/input"
+	f, err := os.Open(file)
+	if err != nil {
+		b.Errorf("could not open file %s: %v", file, err)
+
+		return
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Split(bufio.ScanLines)
+
+	for read := scanner.Scan(); read; read = scanner.Scan() {
+		d := scanner.Text()
+		if _, ok := s.Get(d); !ok {
+			s.Add(d, d)
+		}
+	}
+}
+
+func BenchmarkSimpleS3FIFO(b *testing.B) {
+	b.ReportAllocs()
+
+	s := s3fifo.New[int, string](10, 0)
+
+	for i := range b.N {
+		s.Set(i, one)
+	}
+}
+
+func BenchmarkBigInputS3FIFO(b *testing.B) {
+	b.ReportAllocs()
+
+	s := s3fifo.New[string, string](1000, 0)
 
 	file := "./examples/input"
 	f, err := os.Open(file)

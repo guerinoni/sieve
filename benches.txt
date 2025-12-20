@@ -2,14 +2,18 @@ Running benchmarks...
 goos: darwin
 goarch: arm64
 pkg: github.com/guerinoni/sieve
-cpu: Apple M3 Pro
-BenchmarkSimpleWithTTL-12              	63004701	        94.24 ns/op	      81 B/op	       1 allocs/op
-BenchmarkSimpleConcurrentWithTTL-12    	1000000000	         0.0000328 ns/op	       0 B/op	       0 allocs/op
-BenchmarkBigInputWithTTL-12            	1000000000	         0.04723 ns/op	       0 B/op	       0 allocs/op
-BenchmarkSimple-12                     	63935722	        93.48 ns/op	      81 B/op	       1 allocs/op
-BenchmarkSimpleConcurrent-12           	1000000000	         0.0000282 ns/op	       0 B/op	       0 allocs/op
-BenchmarkBigInput-12                   	1000000000	         0.04353 ns/op	       0 B/op	       0 allocs/op
-BenchmarkSimpleSingleThread-12         	60976874	        93.86 ns/op	      82 B/op	       1 allocs/op
-BenchmarkBigInputSingleThread-12       	1000000000	         0.04064 ns/op	       0 B/op	       0 allocs/op
+cpu: Apple M4 Pro
+BenchmarkSimpleWithTTL-14              	26033257	        50.83 ns/op	      80 B/op	       1 allocs/op
+BenchmarkSimpleConcurrentWithTTL-14    	1000000000	         0.0000355 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBigInputWithTTL-14            	1000000000	         0.04027 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSimple-14                     	22688652	        47.86 ns/op	      80 B/op	       1 allocs/op
+BenchmarkSimpleConcurrent-14           	1000000000	         0.0000363 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBigInput-14                   	1000000000	         0.03422 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSimpleLRU-14                  	26144526	        47.78 ns/op	      80 B/op	       1 allocs/op
+BenchmarkBigInputLRU-14                	1000000000	         0.03188 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSimpleS3FIFO-14               	 7164103	       148.9 ns/op	     192 B/op	       4 allocs/op
+BenchmarkBigInputS3FIFO-14             	1000000000	         0.04460 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSimpleSingleThread-14         	24365048	        49.29 ns/op	      80 B/op	       1 allocs/op
+BenchmarkBigInputSingleThread-14       	1000000000	         0.03277 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	github.com/guerinoni/sieve	23.862s
+ok  	github.com/guerinoni/sieve	8.673s

@@ -87,76 +87,49 @@ Promotion and demotion are internal cache operations designed to maintain an eff
 
 ## Comparison
 
-Running the [example](./examples/main.go) you can see it is compared to 
- - [golang-lru](github.com/hashicorp/golang-lru)
- - [golang-fifo](github.com/scalalang2/golang-fifo)
+Running the [example](./examples/main.go) you can see it is compared to:
+ - [golang-lru](https://github.com/hashicorp/golang-lru)
+ - [golang-fifo (s3-fifo)](https://github.com/scalalang2/golang-fifo)
+
+### Cache Miss Count (lower is better)
+
+| Algorithm | Miss Count |
+|-----------|------------|
+| **sieve** | 338,193 |
+| **sieve-single-thread** | 338,193 |
+| s3-fifo | 345,081 |
+| golang-lru | 424,727 |
+
+Both sieve variants achieve the best hit rate with ~6,888 fewer misses than s3-fifo and ~86,534 fewer than LRU.
+
+## Benchmarks
+
 ```
-Miss count sieve:               338193
-Miss count golang-fifo:         328766
-Miss count golang-lru:          424727
-```
+goos: darwin
+goarch: arm64
+cpu: Apple M4 Pro
 
-Running 1 cache at time (using commented code) the result of memory allocated are the following:
+BenchmarkSimple-14                     21,145,606      52.68 ns/op      80 B/op       1 allocs/op
+BenchmarkSimpleSingleThread-14         22,654,136      47.99 ns/op      80 B/op       1 allocs/op
+BenchmarkSimpleLRU-14                  29,453,671      41.98 ns/op      80 B/op       1 allocs/op
+BenchmarkSimpleS3FIFO-14                7,925,346     156.9  ns/op     192 B/op       4 allocs/op
 
-golang-lru
-```
-# before workload
+BenchmarkBigInput-14                1,000,000,000     0.03371 ns/op      0 B/op       0 allocs/op
+BenchmarkBigInputSingleThread-14    1,000,000,000     0.03297 ns/op      0 B/op       0 allocs/op
+BenchmarkBigInputLRU-14             1,000,000,000     0.03177 ns/op      0 B/op       0 allocs/op
+BenchmarkBigInputS3FIFO-14          1,000,000,000     0.04467 ns/op      0 B/op       0 allocs/op
 
-Alloc = 179 KB
-TotalAlloc = 179 KB
-Sys = 6547 KB
-NumGC = 0
-------
-
-Miss count golang-lru: 424727
-
-# after workload
-
-Alloc = 22740 KB
-TotalAlloc = 129156 KB
-Sys = 57299 KB
-NumGC = 14
-------
-```
-
-golang-fifo
-```
-# before workfload
-
-Alloc = 180 KB
-TotalAlloc = 180 KB
-Sys = 6547 KB
-NumGC = 0
-------
-
-Miss count golang-fifo:         328766
-
-# after workload
-
-Alloc = 28752 KB
-TotalAlloc = 134146 KB
-Sys = 62227 KB
-NumGC = 14
-------
+BenchmarkSimpleWithTTL-14              25,785,574      45.94 ns/op      80 B/op       1 allocs/op
+BenchmarkSimpleConcurrent-14        1,000,000,000   0.0000345 ns/op      0 B/op       0 allocs/op
+BenchmarkSimpleConcurrentWithTTL-14 1,000,000,000   0.0000303 ns/op      0 B/op       0 allocs/op
 ```
 
-sieve:
-```
-# before workload
+### Summary
 
-Alloc = 179 KB
-TotalAlloc = 179 KB
-Sys = 6291 KB
-NumGC = 0
-------
+| Metric | sieve | sieve-single-thread | golang-lru | s3-fifo |
+|--------|-------|---------------------|------------|---------|
+| Hit Rate | Best | Best | Worst | Good |
+| Speed (simple) | 52.68 ns | 47.99 ns | 41.98 ns | 156.9 ns |
+| Memory | 80 B/op | 80 B/op | 80 B/op | 192 B/op |
+| Allocations | 1 | 1 | 1 | 4 |
 
-Miss count sieve: 338193
-
-# after workload
-
-Alloc = 27875 KB
-TotalAlloc = 114269 KB
-Sys = 61331 KB
-NumGC = 11
-------
-```

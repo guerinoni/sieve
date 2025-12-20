@@ -9,7 +9,7 @@ import (
 
 	"github.com/guerinoni/sieve"
 	lru "github.com/hashicorp/golang-lru/v2"
-	golangfifo "github.com/scalalang2/golang-fifo/sieve"
+	s3fifo "github.com/scalalang2/golang-fifo/s3fifo"
 )
 
 const fileName = "input"
@@ -34,23 +34,29 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(4)
 
 	go func() {
 		missCountSieve := doSieve(data)
-		fmt.Printf("Miss count sieve:		%d\n", missCountSieve)
+		fmt.Printf("Miss count sieve:			%d\n", missCountSieve)
+		wg.Done()
+	}()
+
+	go func() {
+		missCountSieveST := doSieveSingleThread(data)
+		fmt.Printf("Miss count sieve-single-thread:		%d\n", missCountSieveST)
 		wg.Done()
 	}()
 
 	go func() {
 		missCountLRU := doLRU(data)
-		fmt.Printf("Miss count golang-lru:		%d\n", missCountLRU)
+		fmt.Printf("Miss count golang-lru:			%d\n", missCountLRU)
 		wg.Done()
 	}()
 
 	go func() {
-		missCountGolangFifo := doGolangFifo(data)
-		fmt.Printf("Miss count golang-fifo:		%d\n", missCountGolangFifo)
+		missCountFifo := doFifo(data)
+		fmt.Printf("Miss count s3-fifo:			%d\n", missCountFifo)
 		wg.Done()
 	}()
 
@@ -59,11 +65,25 @@ func main() {
 	// printMemoryUsage()
 }
 
-func doSieve(intput []string) int {
+func doSieve(input []string) int {
 	mc := 0
 	cache := sieve.New[string, string](capacity)
 
-	for _, d := range intput {
+	for _, d := range input {
+		if _, ok := cache.Get(d); !ok {
+			mc += 1
+			cache.Set(d, d)
+		}
+	}
+
+	return mc
+}
+
+func doSieveSingleThread(input []string) int {
+	mc := 0
+	cache := sieve.NewSingleThread[string, string](capacity)
+
+	for _, d := range input {
 		if _, ok := cache.Get(d); !ok {
 			mc += 1
 			cache.Set(d, d)
@@ -91,9 +111,9 @@ func doLRU(input []string) int {
 	return mc
 }
 
-func doGolangFifo(input []string) int {
+func doFifo(input []string) int {
 	mc := 0
-	cache := golangfifo.New[string, string](capacity, 0)
+	cache := s3fifo.New[string, string](capacity, 0) // 0 TTL = no expiration
 
 	for _, d := range input {
 		if _, ok := cache.Get(d); !ok {
