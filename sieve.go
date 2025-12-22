@@ -195,8 +195,6 @@ func (s *Cache[K, V]) evictNode() {
 
 	if h.prev != nil {
 		h.prev.next = h.next
-	} else { // so we are the first node
-		s.hand = h.next
 	}
 
 	if s.head == h {
