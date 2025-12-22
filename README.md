@@ -90,17 +90,19 @@ Promotion and demotion are internal cache operations designed to maintain an eff
 Running the [example](./examples/main.go) you can see it is compared to:
  - [golang-lru](https://github.com/hashicorp/golang-lru)
  - [golang-fifo (s3-fifo)](https://github.com/scalalang2/golang-fifo)
+ - [golang-fifo (sieve)](https://github.com/scalalang2/golang-fifo)
 
 ### Cache Miss Count (lower is better)
 
 | Algorithm | Miss Count |
 |-----------|------------|
+| golang-sieve | 328,766 |
 | **sieve** | 338,193 |
 | **sieve-single-thread** | 338,193 |
 | s3-fifo | 345,081 |
 | golang-lru | 424,727 |
 
-Both sieve variants achieve the best hit rate with ~6,888 fewer misses than s3-fifo and ~86,534 fewer than LRU.
+Both sieve variants achieve better hit rate than s3-fifo (~6,888 fewer misses) and golang-lru (~86,534 fewer misses).
 
 ## Benchmarks
 
@@ -109,27 +111,29 @@ goos: darwin
 goarch: arm64
 cpu: Apple M4 Pro
 
-BenchmarkSimple-14                     21,145,606      52.68 ns/op      80 B/op       1 allocs/op
-BenchmarkSimpleSingleThread-14         22,654,136      47.99 ns/op      80 B/op       1 allocs/op
-BenchmarkSimpleLRU-14                  29,453,671      41.98 ns/op      80 B/op       1 allocs/op
-BenchmarkSimpleS3FIFO-14                7,925,346     156.9  ns/op     192 B/op       4 allocs/op
+BenchmarkSimple-14                     21,206,392      48.46 ns/op      80 B/op       1 allocs/op
+BenchmarkSimpleSingleThread-14         22,182,102      48.22 ns/op      80 B/op       1 allocs/op
+BenchmarkSimpleLRU-14                  27,166,786      41.48 ns/op      80 B/op       1 allocs/op
+BenchmarkSimpleS3FIFO-14                6,465,110     157.6  ns/op     192 B/op       4 allocs/op
+BenchmarkSimpleGolangSieve-14          11,521,432      97.60 ns/op     136 B/op       3 allocs/op
 
-BenchmarkBigInput-14                1,000,000,000     0.03371 ns/op      0 B/op       0 allocs/op
-BenchmarkBigInputSingleThread-14    1,000,000,000     0.03297 ns/op      0 B/op       0 allocs/op
-BenchmarkBigInputLRU-14             1,000,000,000     0.03177 ns/op      0 B/op       0 allocs/op
-BenchmarkBigInputS3FIFO-14          1,000,000,000     0.04467 ns/op      0 B/op       0 allocs/op
+BenchmarkBigInput-14                1,000,000,000     0.03507 ns/op      0 B/op       0 allocs/op
+BenchmarkBigInputSingleThread-14    1,000,000,000     0.03468 ns/op      0 B/op       0 allocs/op
+BenchmarkBigInputLRU-14             1,000,000,000     0.03241 ns/op      0 B/op       0 allocs/op
+BenchmarkBigInputS3FIFO-14          1,000,000,000     0.04485 ns/op      0 B/op       0 allocs/op
+BenchmarkBigInputGolangSieve-14     1,000,000,000     0.02771 ns/op      0 B/op       0 allocs/op
 
-BenchmarkSimpleWithTTL-14              25,785,574      45.94 ns/op      80 B/op       1 allocs/op
-BenchmarkSimpleConcurrent-14        1,000,000,000   0.0000345 ns/op      0 B/op       0 allocs/op
-BenchmarkSimpleConcurrentWithTTL-14 1,000,000,000   0.0000303 ns/op      0 B/op       0 allocs/op
+BenchmarkSimpleWithTTL-14              25,725,212      47.24 ns/op      80 B/op       1 allocs/op
+BenchmarkSimpleConcurrent-14        1,000,000,000   0.0000209 ns/op      0 B/op       0 allocs/op
+BenchmarkSimpleConcurrentWithTTL-14 1,000,000,000   0.0000333 ns/op      0 B/op       0 allocs/op
 ```
 
 ### Summary
 
-| Metric | sieve | sieve-single-thread | golang-lru | s3-fifo |
-|--------|-------|---------------------|------------|---------|
-| Hit Rate | Best | Best | Worst | Good |
-| Speed (simple) | 52.68 ns | 47.99 ns | 41.98 ns | 156.9 ns |
-| Memory | 80 B/op | 80 B/op | 80 B/op | 192 B/op |
-| Allocations | 1 | 1 | 1 | 4 |
+| Metric | sieve | sieve-single-thread | golang-lru | s3-fifo | golang-sieve |
+|--------|-------|---------------------|------------|---------|--------------|
+| Hit Rate | Good | Good | Worst | Good | Best |
+| Speed (simple) | 48.46 ns | 48.22 ns | 41.48 ns | 157.6 ns | 97.60 ns |
+| Memory | 80 B/op | 80 B/op | 80 B/op | 192 B/op | 136 B/op |
+| Allocations | 1 | 1 | 1 | 4 | 3 |
 

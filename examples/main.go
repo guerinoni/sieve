@@ -10,6 +10,7 @@ import (
 	"github.com/guerinoni/sieve"
 	lru "github.com/hashicorp/golang-lru/v2"
 	s3fifo "github.com/scalalang2/golang-fifo/s3fifo"
+	golangsieve "github.com/scalalang2/golang-fifo/sieve"
 )
 
 const fileName = "input"
@@ -34,7 +35,7 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(4)
+	wg.Add(5)
 
 	go func() {
 		missCountSieve := doSieve(data)
@@ -57,6 +58,12 @@ func main() {
 	go func() {
 		missCountFifo := doFifo(data)
 		fmt.Printf("Miss count s3-fifo:			%d\n", missCountFifo)
+		wg.Done()
+	}()
+
+	go func() {
+		missCountGolangSieve := doGolangSieve(data)
+		fmt.Printf("Miss count golang-sieve:		%d\n", missCountGolangSieve)
 		wg.Done()
 	}()
 
@@ -114,6 +121,20 @@ func doLRU(input []string) int {
 func doFifo(input []string) int {
 	mc := 0
 	cache := s3fifo.New[string, string](capacity, 0) // 0 TTL = no expiration
+
+	for _, d := range input {
+		if _, ok := cache.Get(d); !ok {
+			mc += 1
+			cache.Set(d, d)
+		}
+	}
+
+	return mc
+}
+
+func doGolangSieve(input []string) int {
+	mc := 0
+	cache := golangsieve.New[string, string](capacity, 0) // 0 TTL = no expiration
 
 	for _, d := range input {
 		if _, ok := cache.Get(d); !ok {

@@ -8,6 +8,7 @@ import (
 	"github.com/guerinoni/sieve"
 	lru "github.com/hashicorp/golang-lru/v2"
 	s3fifo "github.com/scalalang2/golang-fifo/s3fifo"
+	golangsieve "github.com/scalalang2/golang-fifo/sieve"
 )
 
 const panicError = "sieve: size must be greater than zero"
@@ -328,6 +329,42 @@ func BenchmarkBigInputS3FIFO(b *testing.B) {
 	b.ReportAllocs()
 
 	s := s3fifo.New[string, string](1000, 0)
+
+	file := testInputFile
+
+	f, err := os.Open(file)
+	if err != nil {
+		b.Errorf("could not open file %s: %v", file, err)
+
+		return
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Split(bufio.ScanLines)
+
+	for read := scanner.Scan(); read; read = scanner.Scan() {
+		d := scanner.Text()
+		if _, ok := s.Get(d); !ok {
+			s.Set(d, d)
+		}
+	}
+}
+
+func BenchmarkSimpleGolangSieve(b *testing.B) {
+	b.ReportAllocs()
+
+	s := golangsieve.New[int, string](10, 0)
+
+	for i := range b.N {
+		s.Set(i, one)
+	}
+}
+
+func BenchmarkBigInputGolangSieve(b *testing.B) {
+	b.ReportAllocs()
+
+	s := golangsieve.New[string, string](1000, 0)
 
 	file := testInputFile
 
