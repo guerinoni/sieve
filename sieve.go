@@ -169,9 +169,9 @@ func (s *Cache[K, V]) evictNode() {
 		}
 
 		// don't evict the node, just mark it as not visited
-		s.hand.visited = false
+		h.visited = false
 
-		// move hand torwards the head
+		// move hand towards the head
 		h = h.prev
 
 		// wrap around if we go beyond the head
