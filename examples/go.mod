@@ -1,6 +1,6 @@
 module github.com/guerinoni/sieve/examples
 
-go 1.24.11
+go 1.25.7
 
 require (
 	github.com/guerinoni/sieve v1.0.0
