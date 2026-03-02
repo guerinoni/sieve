@@ -167,8 +167,7 @@ func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
 				t.Errorf("expected 7 and 8 keys to be in the cache")
 			}
 
-			_, ok9 := s.Get(9)
-			if ok9 {
+			if _, ok9 := s.Get(9); ok9 {
 				t.Errorf("expected key 9 to be expired")
 			}
 		}
@@ -216,8 +215,7 @@ func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
 				t.Errorf("expected 7 and 8 keys to be in the cache")
 			}
 
-			_, ok8 := s.Get(8)
-			if ok8 {
+			if _, ok8 := s.Get(8); ok8 {
 				t.Errorf("expected key 8 to be expired")
 			}
 		}
@@ -282,8 +280,7 @@ func TestMoreElementWithTTL(t *testing.T) {
 		sec = 3
 		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
 
-		_, ok := s.Get(9)
-		if ok {
+		if _, ok := s.Get(9); ok {
 			t.Errorf("expected key 8 to be expired")
 		}
 	})
@@ -310,8 +307,7 @@ func TestSetWithAllExpired(t *testing.T) {
 	// so the `visited` flag is not relevant anymore
 	s.Set(11, struct{}{})
 
-	expected := `[11: {} -> 10: {} -> 9: {} -> 8: {}]`
-	if s.String() != expected {
+	if expected := `[11: {} -> 10: {} -> 9: {} -> 8: {}]`; s.String() != expected {
 		t.Errorf("expected %s, got %s", expected, s.String())
 	}
 }

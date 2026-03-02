@@ -160,9 +160,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 func (s *Cache[K, V]) evictNode() {
 	h := s.hand
 
-	atNow := now()
-
-	for h.visited {
+	for atNow := now(); h.visited; {
 		// if the node is visited but is expired, then we can evict it
 		if s.ttl > 0 && atNow.Sub(h.access) > s.ttl {
 			break
@@ -326,7 +324,7 @@ func (s *Cache[K, V]) String() string {
 	str.WriteString("[")
 
 	for n := s.head; n != nil; n = n.next {
-		str.WriteString(fmt.Sprintf("%v: %v", n.key, n.value))
+		fmt.Fprintf(&str, "%v: %v", n.key, n.value)
 
 		if n.next != nil {
 			str.WriteString(" -> ")
