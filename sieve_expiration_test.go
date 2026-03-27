@@ -1,77 +1,56 @@
-// Those test use the same pkg because we need to mock the var `now` in sieve.go.
-package sieve
+package sieve_test
 
 import (
 	"bufio"
 	"os"
 	"testing"
+	"testing/synctest"
 	"time"
+
+	"github.com/guerinoni/sieve"
 )
 
-const testInputFile = "./examples/input"
-
 func TestOneElementWithTTL(t *testing.T) {
-	s := New[int, struct{}](4).WithTTL(1 * time.Second)
+	synctest.Test(t, func(t *testing.T) {
+		s := sieve.New[int, struct{}](4).WithTTL(1 * time.Second)
 
-	// fake now
-	sec := 1
-	now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		s.Set(7, struct{}{})
+		synctest.Wait()
 
-	s.Set(7, struct{}{})
+		time.Sleep(500 * time.Millisecond)
+		synctest.Wait()
 
-	_, ok := s.Get(7)
-	if !ok {
-		t.Errorf("expected key 7 to be in the cache")
-	}
+		_, ok := s.Get(7)
+		if !ok {
+			t.Errorf("expected key 7 to be in the cache")
+		}
 
-	// simulate time passing
-	sec = 2
-	now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		time.Sleep(2 * time.Second)
+		synctest.Wait()
 
-	_, ok = s.Get(7)
-	if !ok {
-		t.Errorf("expected key 7 to be in the cache")
-	}
-
-	// simulate time passing
-	sec = 3
-	now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
-
-	_, ok = s.Get(7)
-	if !ok {
-		t.Errorf("expected key 7 to be in the cache")
-	}
-
-	// simulate time passing
-	sec = 5
-	now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
-
-	_, ok = s.Get(7)
-	if ok {
-		t.Errorf("expected key 7 to be expired")
-	}
+		_, ok = s.Get(7)
+		if ok {
+			t.Errorf("expected key 7 to be expired")
+		}
+	})
 }
 
-func TestTwoElementWithTLL(t *testing.T) {
-	s := New[int, struct{}](4).WithTTL(1 * time.Second)
-
-	t.Run("first evict tail", func(t *testing.T) {
-		// fake now
-		sec := 1
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+func TestTwoElementWithTLLEvictTail(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := sieve.New[int, struct{}](4).WithTTL(1 * time.Second)
 
 		s.Set(7, struct{}{})
 		s.Set(8, struct{}{})
+		synctest.Wait()
 
-		// simulate time passing
-		sec = 2
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		time.Sleep(900 * time.Millisecond)
+		synctest.Wait()
 
 		s.Get(7) // keep 7 alive
+		synctest.Wait()
 
-		// simulate time passing
-		sec = 3
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		time.Sleep(200 * time.Millisecond)
+		synctest.Wait()
 
 		_, ok := s.Get(7)
 		if !ok {
@@ -87,26 +66,24 @@ func TestTwoElementWithTLL(t *testing.T) {
 			t.Errorf("expected len to be 1")
 		}
 	})
+}
 
-	s.Flush()
-
-	t.Run("first evict head", func(t *testing.T) {
-		// fake now
-		sec := 1
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+func TestTwoElementWithTLLEvictHead(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := sieve.New[int, struct{}](4).WithTTL(1 * time.Second)
 
 		s.Set(7, struct{}{})
 		s.Set(8, struct{}{})
+		synctest.Wait()
 
-		// simulate time passing
-		sec = 2
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		time.Sleep(900 * time.Millisecond)
+		synctest.Wait()
 
 		s.Get(8) // keep 8 alive
+		synctest.Wait()
 
-		// simulate time passing
-		sec = 3
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		time.Sleep(200 * time.Millisecond)
+		synctest.Wait()
 
 		_, ok := s.Get(7)
 		if ok {
@@ -124,126 +101,86 @@ func TestTwoElementWithTLL(t *testing.T) {
 	})
 }
 
-func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
-	s := New[int, struct{}](4).WithTTL(1 * time.Second)
-
-	t.Run("first evict head", func(t *testing.T) { //nolint: dupl
-		// fake now
-		sec := 1
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+func TestThreeElementWithTTLEvictHead(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := sieve.New[int, struct{}](4).WithTTL(1 * time.Second)
 
 		s.Set(7, struct{}{})
-
-		sec = 2
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
-
 		s.Set(8, struct{}{})
-		s.Set(9, struct{}{}) // head is 9 here since is the latest inserted
+		s.Set(9, struct{}{})
+		synctest.Wait()
 
-		if s.Len() != 3 {
-			t.Errorf("expected len to be 3")
-		}
+		time.Sleep(900 * time.Millisecond)
+		synctest.Wait()
 
-		s.Get(7) // keep element 7 alive
+		s.Get(7) // keep 7 alive
+		s.Get(8) // keep 8 alive
+		synctest.Wait()
 
-		sec = 3
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		time.Sleep(200 * time.Millisecond)
+		synctest.Wait()
 
 		_, ok7 := s.Get(7)
-
 		_, ok8 := s.Get(8)
 		if !ok7 || !ok8 {
-			t.Errorf("expected 7 and 8 keys to be in the cache")
+			t.Errorf("expected 7 and 8 keys to be in the cache, got 7=%v 8=%v", ok7, ok8)
 		}
 
-		sec = 4
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
-
-		{
-			_, ok7 := s.Get(7)
-
-			_, ok8 := s.Get(8)
-			if !ok7 || !ok8 {
-				t.Errorf("expected 7 and 8 keys to be in the cache")
-			}
-
-			if _, ok9 := s.Get(9); ok9 {
-				t.Errorf("expected key 9 to be expired")
-			}
+		if _, ok9 := s.Get(9); ok9 {
+			t.Errorf("expected key 9 to be expired")
 		}
 	})
+}
 
-	s.Flush()
-
-	t.Run("first evict middle item", func(t *testing.T) { //nolint: dupl
-		// fake now
-		sec := 1
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+func TestThreeElementWithTTLEvictMiddle(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := sieve.New[int, struct{}](4).WithTTL(1 * time.Second)
 
 		s.Set(7, struct{}{})
-
-		sec = 2
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
-
 		s.Set(8, struct{}{})
 		s.Set(9, struct{}{})
+		synctest.Wait()
 
-		if s.Len() != 3 {
-			t.Errorf("expected len to be 3")
-		}
+		time.Sleep(900 * time.Millisecond)
+		synctest.Wait()
 
-		s.Get(7) // keep element 7 alive
+		s.Get(7) // keep 7 alive
+		s.Get(9) // keep 9 alive
+		synctest.Wait()
 
-		sec = 3
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		time.Sleep(200 * time.Millisecond)
+		synctest.Wait()
 
 		_, ok7 := s.Get(7)
-
 		_, ok9 := s.Get(9)
 		if !ok7 || !ok9 {
-			t.Errorf("expected 7 and 9 keys to be in the cache")
+			t.Errorf("expected 7 and 9 keys to be in the cache, got 7=%v 9=%v", ok7, ok9)
 		}
 
-		sec = 4
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
-
-		{
-			_, ok7 := s.Get(7)
-
-			_, ok9 := s.Get(9)
-			if !ok7 || !ok9 {
-				t.Errorf("expected 7 and 8 keys to be in the cache")
-			}
-
-			if _, ok8 := s.Get(8); ok8 {
-				t.Errorf("expected key 8 to be expired")
-			}
+		if _, ok8 := s.Get(8); ok8 {
+			t.Errorf("expected key 8 to be expired")
 		}
 	})
+}
 
-	s.Flush()
+func TestThreeElementWithTTLEvictTail(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := sieve.New[int, struct{}](4).WithTTL(1 * time.Second)
 
-	t.Run("first evict tail", func(t *testing.T) {
-		// fake now
-		sec := 1
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		s.Set(7, struct{}{})
+		synctest.Wait()
 
-		s.Set(7, struct{}{}) // tail here is 7 since is the first inserted
-
-		sec = 2
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		time.Sleep(500 * time.Millisecond)
+		synctest.Wait()
 
 		s.Set(8, struct{}{})
 		s.Set(9, struct{}{})
+		synctest.Wait()
 
-		if s.Len() != 3 {
-			t.Errorf("expected len to be 3")
-		}
+		time.Sleep(600 * time.Millisecond)
+		synctest.Wait()
 
-		sec = 3
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
-
-		_, ok := s.Get(7) // expired because entered at sec=1
+		_, ok := s.Get(7)
 		if ok {
 			t.Errorf("expected key 7 to be expired")
 		}
@@ -261,61 +198,92 @@ func TestThreeElementWithTTL(t *testing.T) { //nolint: cyclop
 }
 
 func TestMoreElementWithTTL(t *testing.T) {
-	s := New[int, struct{}](4).WithTTL(1 * time.Second)
-
-	t.Run("hand is in the middle of linked list", func(t *testing.T) {
-		sec := 1
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+	synctest.Test(t, func(t *testing.T) {
+		s := sieve.New[int, struct{}](4).WithTTL(1 * time.Second)
 
 		s.Set(7, struct{}{})
 		s.Set(8, struct{}{})
 		s.Set(9, struct{}{})
 		s.Set(10, struct{}{})
+		synctest.Wait()
 
 		s.Get(7) // keep 7 inside cache
+		s.Set(11, struct{}{})
+		synctest.Wait()
 
-		// 8 is evicted
-		s.Set(11, struct{}{}) // 11 10 9 7
-
-		sec = 3
-		now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		time.Sleep(2 * time.Second)
+		synctest.Wait()
 
 		if _, ok := s.Get(9); ok {
-			t.Errorf("expected key 8 to be expired")
+			t.Errorf("expected key 9 to be expired")
 		}
 	})
 }
 
 func TestSetWithAllExpired(t *testing.T) {
-	s := New[int, struct{}](4).WithTTL(1 * time.Second)
-	sec := 1
-	now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+	synctest.Test(t, func(t *testing.T) {
+		s := sieve.New[int, struct{}](4).WithTTL(1 * time.Second)
 
-	s.Set(7, struct{}{})
-	s.Set(8, struct{}{})
-	s.Set(9, struct{}{})
-	s.Set(10, struct{}{})
+		s.Set(7, struct{}{})
+		s.Set(8, struct{}{})
+		s.Set(9, struct{}{})
+		s.Set(10, struct{}{})
+		synctest.Wait()
 
-	s.Get(7) // now hand should start after 7, because 7 is marked `visited`
+		s.Get(7) // now hand should start after 7, because 7 is marked `visited`
+		synctest.Wait()
 
-	sec = 3
-	now = func() time.Time { return time.Date(2025, 1, 1, 0, 0, sec, 0, time.UTC) }
+		time.Sleep(2 * time.Second)
+		synctest.Wait()
 
-	// now all keys are expired so the first key should be evicted
+		s.Set(11, struct{}{})
 
-	// 7 should be evicted also if it has `visited` set to true, because the key is expired,
-	// so the `visited` flag is not relevant anymore
-	s.Set(11, struct{}{})
+		if expected := `[11: {} -> 10: {} -> 9: {} -> 8: {}]`; s.String() != expected {
+			t.Errorf("expected %s, got %s", expected, s.String())
+		}
+	})
+}
 
-	if expected := `[11: {} -> 10: {} -> 9: {} -> 8: {}]`; s.String() != expected {
-		t.Errorf("expected %s, got %s", expected, s.String())
-	}
+func TestHandNilPanicAfterTTLEvictions(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := sieve.New[int, struct{}](3).WithTTL(1 * time.Second)
+
+		s.Set(1, struct{}{})
+		s.Set(2, struct{}{})
+		s.Set(3, struct{}{})
+		synctest.Wait()
+
+		time.Sleep(10 * time.Second)
+		synctest.Wait()
+
+		s.Get(1)
+		s.Get(2)
+		s.Get(3)
+		synctest.Wait()
+
+		s.Set(4, struct{}{})
+		s.Set(5, struct{}{})
+		synctest.Wait()
+
+		s.Get(4)
+		synctest.Wait()
+
+		s.Set(6, struct{}{})
+		synctest.Wait()
+
+		s.Set(7, struct{}{})
+		synctest.Wait()
+
+		if s.Len() != 3 {
+			t.Errorf("expected length 3, got %d", s.Len())
+		}
+	})
 }
 
 func BenchmarkSimpleWithTTL(b *testing.B) {
 	b.ReportAllocs()
 
-	s := NewSingleThread[int, string](10).WithTTL(100 * time.Millisecond)
+	s := sieve.NewSingleThread[int, string](10).WithTTL(100 * time.Millisecond)
 
 	for i := range b.N {
 		s.Set(i, "one")
@@ -325,7 +293,7 @@ func BenchmarkSimpleWithTTL(b *testing.B) {
 func BenchmarkSimpleConcurrentWithTTL(b *testing.B) {
 	b.ReportAllocs()
 
-	s := New[int, string](10).WithTTL(100 * time.Millisecond)
+	s := sieve.New[int, string](10).WithTTL(100 * time.Millisecond)
 
 	for i := range 100 {
 		go func(i int) {
@@ -338,11 +306,10 @@ func BenchmarkSimpleConcurrentWithTTL(b *testing.B) {
 	}
 }
 
-// BenchmarkBigInputWithTTL-12             1000000000               0.05654 ns/op         0 B/op          0 allocs/op.
 func BenchmarkBigInputWithTTL(b *testing.B) {
 	b.ReportAllocs()
 
-	s := New[string, string](1000).WithTTL(100 * time.Millisecond)
+	s := sieve.New[string, string](1000).WithTTL(100 * time.Millisecond)
 
 	file := testInputFile
 
