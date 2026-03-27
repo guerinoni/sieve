@@ -101,66 +101,48 @@ func TestTwoElementWithTLLEvictHead(t *testing.T) {
 	})
 }
 
-func TestThreeElementWithTTLEvictHead(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		s := sieve.New[int, struct{}](4).WithTTL(1 * time.Second)
+func TestThreeElementWithTTLEvict(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		alive   []int
+		expired int
+	}{
+		{"head", []int{7, 8}, 9},
+		{"middle", []int{7, 9}, 8},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				s := sieve.New[int, struct{}](4).WithTTL(1 * time.Second)
 
-		s.Set(7, struct{}{})
-		s.Set(8, struct{}{})
-		s.Set(9, struct{}{})
-		synctest.Wait()
+				s.Set(7, struct{}{})
+				s.Set(8, struct{}{})
+				s.Set(9, struct{}{})
+				synctest.Wait()
 
-		time.Sleep(900 * time.Millisecond)
-		synctest.Wait()
+				time.Sleep(900 * time.Millisecond)
+				synctest.Wait()
 
-		s.Get(7) // keep 7 alive
-		s.Get(8) // keep 8 alive
-		synctest.Wait()
+				for _, k := range tc.alive {
+					s.Get(k)
+				}
 
-		time.Sleep(200 * time.Millisecond)
-		synctest.Wait()
+				synctest.Wait()
 
-		_, ok7 := s.Get(7)
-		_, ok8 := s.Get(8)
-		if !ok7 || !ok8 {
-			t.Errorf("expected 7 and 8 keys to be in the cache, got 7=%v 8=%v", ok7, ok8)
-		}
+				time.Sleep(200 * time.Millisecond)
+				synctest.Wait()
 
-		if _, ok9 := s.Get(9); ok9 {
-			t.Errorf("expected key 9 to be expired")
-		}
-	})
-}
+				for _, k := range tc.alive {
+					if _, ok := s.Get(k); !ok {
+						t.Errorf("expected key %d to be in the cache", k)
+					}
+				}
 
-func TestThreeElementWithTTLEvictMiddle(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		s := sieve.New[int, struct{}](4).WithTTL(1 * time.Second)
-
-		s.Set(7, struct{}{})
-		s.Set(8, struct{}{})
-		s.Set(9, struct{}{})
-		synctest.Wait()
-
-		time.Sleep(900 * time.Millisecond)
-		synctest.Wait()
-
-		s.Get(7) // keep 7 alive
-		s.Get(9) // keep 9 alive
-		synctest.Wait()
-
-		time.Sleep(200 * time.Millisecond)
-		synctest.Wait()
-
-		_, ok7 := s.Get(7)
-		_, ok9 := s.Get(9)
-		if !ok7 || !ok9 {
-			t.Errorf("expected 7 and 9 keys to be in the cache, got 7=%v 9=%v", ok7, ok9)
-		}
-
-		if _, ok8 := s.Get(8); ok8 {
-			t.Errorf("expected key 8 to be expired")
-		}
-	})
+				if _, ok := s.Get(tc.expired); ok {
+					t.Errorf("expected key %d to be expired", tc.expired)
+				}
+			})
+		})
+	}
 }
 
 func TestThreeElementWithTTLEvictTail(t *testing.T) {

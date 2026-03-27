@@ -374,6 +374,7 @@ func TestFlush(t *testing.T) {
 
 	// ensure cache is usable after flush
 	s.Set(4, "four")
+
 	v, ok := s.Get(4)
 	if !ok || v != "four" {
 		t.Errorf("expected key 4 to be 'four' after flush and re-insert, got '%s'", v)
