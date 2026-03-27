@@ -1,4 +1,4 @@
-.SILENT : 
+.SILENT :
 
 .PHONY: default
 default:
@@ -20,7 +20,7 @@ endif
 .PHONY: test
 test:
 	echo Running tests...
-	go test -race $(PKG) -v
+	go test -shuffle=on -race $(PKG) -v
 
 .PHONY: test-escape
 test-escape:
