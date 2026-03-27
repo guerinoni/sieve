@@ -46,7 +46,7 @@ const one = "one"
 const two = "two"
 const three = "three"
 
-func TestEasy(t *testing.T) { //nolint: cyclop
+func TestEasy(t *testing.T) {
 	s := sieve.New[int, string](2)
 	if s.Len() != 0 {
 		t.Errorf("expected length 0, got %d", s.Len())

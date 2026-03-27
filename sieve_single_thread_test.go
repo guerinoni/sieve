@@ -36,7 +36,7 @@ func TestPanicWithSizeLessThanZeroSingleThread(t *testing.T) {
 	sieve.NewSingleThread[string, int](-10)
 }
 
-func TestEasySingleThread(t *testing.T) { //nolint: cyclop
+func TestEasySingleThread(t *testing.T) {
 	s := sieve.NewSingleThread[int, string](2)
 	if s.Len() != 0 {
 		t.Errorf("expected length 0, got %d", s.Len())

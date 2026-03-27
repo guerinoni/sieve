@@ -4,13 +4,9 @@ linters:
   disable:
     - wsl
     - varnamelen
-    - testpackage
     - paralleltest
-    - mnd
     - ireturn
-    - gochecknoglobals
     - depguard
-    - funlen
     - lll
 
   exclusions:
@@ -18,3 +14,5 @@ linters:
       - path: _test\.go
         linters:
           - errcheck
+          - funlen
+          - cyclop

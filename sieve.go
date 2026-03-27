@@ -1,3 +1,4 @@
+// Package sieve implements the SIEVE cache eviction algorithm.
 package sieve
 
 import (
@@ -222,7 +223,8 @@ func (s *Cache[K, V]) removeNodeFromLinkedList(n *node[K, V]) {
 		return
 	}
 
-	if l == 2 {
+	const pairSize = 2
+	if l == pairSize {
 		if s.head == n {
 			s.head = s.tail
 		} else { // so n == s.tail
