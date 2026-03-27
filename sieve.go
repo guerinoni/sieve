@@ -294,6 +294,26 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 	return n.value, true
 }
 
+// Delete removes the element with the given key from the sieve.
+// It returns true if the key was found and removed, false otherwise.
+func (s *Cache[K, V]) Delete(key K) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	n, ok := s.m[key]
+	if !ok {
+		return false
+	}
+
+	s.removeNodeFromLinkedList(n)
+
+	delete(s.m, n.key)
+
+	s.len.Add(-1)
+
+	return true
+}
+
 // Flush removes all elements from the sieve and dealloc the internal structs.
 func (s *Cache[K, V]) Flush() {
 	s.mu.Lock()

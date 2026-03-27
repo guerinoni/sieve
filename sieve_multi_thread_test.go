@@ -43,6 +43,8 @@ func TestPanicWithSizeLessThanZero(t *testing.T) {
 }
 
 const one = "one"
+const two = "two"
+const three = "three"
 
 func TestEasy(t *testing.T) { //nolint: cyclop
 	s := sieve.New[int, string](2)
@@ -62,7 +64,7 @@ func TestEasy(t *testing.T) { //nolint: cyclop
 		t.Errorf("expected length 1 after duplicate, got %d", s.Len())
 	}
 
-	s.Set(2, "two")
+	s.Set(2, two)
 
 	if s.Len() != 2 {
 		t.Errorf("expected length 2, got %d", s.Len())
@@ -88,7 +90,7 @@ func TestEasy(t *testing.T) { //nolint: cyclop
 
 	// now we start evicting
 
-	s.Set(3, "three")
+	s.Set(3, three)
 
 	if s.Len() != 2 {
 		t.Errorf("expected length 2 after eviction, got %d", s.Len())
@@ -117,12 +119,12 @@ func TestAllAreVisited(t *testing.T) {
 	s := sieve.New[int, string](2)
 
 	s.Set(1, one)
-	s.Set(2, "two")
+	s.Set(2, two)
 	s.Get(2)
 
 	// so now we have all nodes visited
 
-	s.Set(3, "three")
+	s.Set(3, three)
 
 	if s.Len() != 2 {
 		t.Errorf("expected length 2 after eviction, got %d", s.Len())
@@ -133,7 +135,7 @@ func TestAllAreVisited(t *testing.T) {
 		t.Errorf("expected key 3 to exist, but it does not")
 	}
 
-	if v != "three" {
+	if v != three {
 		t.Errorf("expected value for key 3 to be 'three', got '%s'", v)
 	}
 
@@ -142,7 +144,7 @@ func TestAllAreVisited(t *testing.T) {
 		t.Errorf("expected key 2 to exist, but it does not")
 	}
 
-	if v != "two" {
+	if v != two {
 		t.Errorf("expected value for key 2 to be 'two', got '%s'", v)
 	}
 
@@ -160,14 +162,14 @@ func TestHandWrapAround(t *testing.T) {
 	s := sieve.New[int, string](2)
 
 	s.Set(1, one)
-	s.Set(2, "two")
+	s.Set(2, two)
 
 	_, ok := s.Get(1)
 	if !ok {
 		t.Errorf("expected to find 1")
 	}
 
-	s.Set(3, "three")
+	s.Set(3, three)
 
 	_, ok = s.Get(3)
 	if !ok {
@@ -225,6 +227,77 @@ func TestMoreComplex(t *testing.T) { //nolint: dupl
 	if !ok {
 		t.Errorf("expected to find 1")
 	}
+}
+
+func TestDeleteConcurrent(t *testing.T) {
+	s := sieve.New[int, string](100)
+
+	for i := range 100 {
+		s.Set(i, "v")
+	}
+
+	done := make(chan struct{})
+
+	go func() {
+		for i := range 50 {
+			s.Delete(i)
+		}
+
+		done <- struct{}{}
+	}()
+
+	go func() {
+		for i := 50; i < 100; i++ {
+			s.Delete(i)
+		}
+
+		done <- struct{}{}
+	}()
+
+	<-done
+	<-done
+
+	if s.Len() != 0 {
+		t.Errorf("expected length 0, got %d", s.Len())
+	}
+}
+
+func TestDeleteConcurrentWithSetAndGet(_ *testing.T) {
+	s := sieve.New[int, string](50)
+
+	for i := range 50 {
+		s.Set(i, "v")
+	}
+
+	done := make(chan struct{})
+
+	go func() {
+		for i := range 50 {
+			s.Delete(i)
+		}
+
+		done <- struct{}{}
+	}()
+
+	go func() {
+		for i := 50; i < 100; i++ {
+			s.Set(i, "v")
+		}
+
+		done <- struct{}{}
+	}()
+
+	go func() {
+		for i := range 100 {
+			s.Get(i)
+		}
+
+		done <- struct{}{}
+	}()
+
+	<-done
+	<-done
+	<-done
 }
 
 func BenchmarkSimple(b *testing.B) {

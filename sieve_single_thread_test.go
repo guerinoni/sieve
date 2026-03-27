@@ -42,19 +42,19 @@ func TestEasySingleThread(t *testing.T) { //nolint: cyclop
 		t.Errorf("expected length 0, got %d", s.Len())
 	}
 
-	s.Set(1, "one")
+	s.Set(1, one)
 
 	if s.Len() != 1 {
 		t.Errorf("expected length 1, got %d", s.Len())
 	}
 
-	s.Set(1, "one") // duplicate
+	s.Set(1, one) // duplicate
 
 	if s.Len() != 1 {
 		t.Errorf("expected length 1 after duplicate, got %d", s.Len())
 	}
 
-	s.Set(2, "two")
+	s.Set(2, two)
 
 	if s.Len() != 2 {
 		t.Errorf("expected length 2, got %d", s.Len())
@@ -74,13 +74,13 @@ func TestEasySingleThread(t *testing.T) { //nolint: cyclop
 		t.Errorf("expected key 1 to exist, but it does not")
 	}
 
-	if v != "one" {
+	if v != one {
 		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
 	}
 
 	// now we start evicting
 
-	s.Set(3, "three")
+	s.Set(3, three)
 
 	if s.Len() != 2 {
 		t.Errorf("expected length 2 after eviction, got %d", s.Len())
@@ -91,7 +91,7 @@ func TestEasySingleThread(t *testing.T) { //nolint: cyclop
 		t.Errorf("expected key 1 to exist, but it does not")
 	}
 
-	if v != "one" {
+	if v != one {
 		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
 	}
 
@@ -108,13 +108,13 @@ func TestEasySingleThread(t *testing.T) { //nolint: cyclop
 func TestAllAreVisitedSingleThread(t *testing.T) {
 	s := sieve.NewSingleThread[int, string](2)
 
-	s.Set(1, "one")
-	s.Set(2, "two")
+	s.Set(1, one)
+	s.Set(2, two)
 	s.Get(2)
 
 	// so now we have all nodes visited
 
-	s.Set(3, "three")
+	s.Set(3, three)
 
 	if s.Len() != 2 {
 		t.Errorf("expected length 2 after eviction, got %d", s.Len())
@@ -125,7 +125,7 @@ func TestAllAreVisitedSingleThread(t *testing.T) {
 		t.Errorf("expected key 3 to exist, but it does not")
 	}
 
-	if v != "three" {
+	if v != three {
 		t.Errorf("expected value for key 3 to be 'three', got '%s'", v)
 	}
 
@@ -134,7 +134,7 @@ func TestAllAreVisitedSingleThread(t *testing.T) {
 		t.Errorf("expected key 2 to exist, but it does not")
 	}
 
-	if v != "two" {
+	if v != two {
 		t.Errorf("expected value for key 2 to be 'two', got '%s'", v)
 	}
 
@@ -151,15 +151,15 @@ func TestAllAreVisitedSingleThread(t *testing.T) {
 func TestHandWrapAroundSingleThread(t *testing.T) {
 	s := sieve.NewSingleThread[int, string](2)
 
-	s.Set(1, "one")
-	s.Set(2, "two")
+	s.Set(1, one)
+	s.Set(2, two)
 
 	_, ok := s.Get(1)
 	if !ok {
 		t.Errorf("expected to find 1")
 	}
 
-	s.Set(3, "three")
+	s.Set(3, three)
 
 	_, ok = s.Get(3)
 	if !ok {
@@ -219,13 +219,150 @@ func TestMoreComplexSingleThread(t *testing.T) { //nolint: dupl
 	}
 }
 
+func TestDeleteNonExistentKey(t *testing.T) {
+	s := sieve.NewSingleThread[int, string](2)
+	s.Set(1, one)
+
+	ok := s.Delete(99)
+	if ok {
+		t.Errorf("expected Delete to return false for non-existent key")
+	}
+
+	if s.Len() != 1 {
+		t.Errorf("expected length 1, got %d", s.Len())
+	}
+}
+
+func TestDeleteOnlyElement(t *testing.T) {
+	s := sieve.NewSingleThread[int, string](2)
+	s.Set(1, one)
+
+	ok := s.Delete(1)
+	if !ok {
+		t.Errorf("expected Delete to return true")
+	}
+
+	if s.Len() != 0 {
+		t.Errorf("expected length 0, got %d", s.Len())
+	}
+
+	_, ok = s.Get(1)
+	if ok {
+		t.Errorf("expected key 1 to not exist after delete")
+	}
+}
+
+func TestDeleteHead(t *testing.T) {
+	s := sieve.NewSingleThread[int, string](3)
+	s.Set(1, one)
+	s.Set(2, two)
+	s.Set(3, three)
+
+	// head is 3 (last inserted)
+	ok := s.Delete(3)
+	if !ok {
+		t.Errorf("expected Delete to return true")
+	}
+
+	if s.Len() != 2 {
+		t.Errorf("expected length 2, got %d", s.Len())
+	}
+
+	v, ok := s.Get(1)
+	if !ok || v != one {
+		t.Errorf("expected key 1 to be 'one', got '%s'", v)
+	}
+
+	v, ok = s.Get(2)
+	if !ok || v != two {
+		t.Errorf("expected key 2 to be 'two', got '%s'", v)
+	}
+}
+
+func TestDeleteTail(t *testing.T) {
+	s := sieve.NewSingleThread[int, string](3)
+	s.Set(1, one)
+	s.Set(2, two)
+	s.Set(3, three)
+
+	// tail is 1 (first inserted)
+	ok := s.Delete(1)
+	if !ok {
+		t.Errorf("expected Delete to return true")
+	}
+
+	if s.Len() != 2 {
+		t.Errorf("expected length 2, got %d", s.Len())
+	}
+
+	v, ok := s.Get(2)
+	if !ok || v != two {
+		t.Errorf("expected key 2 to be 'two', got '%s'", v)
+	}
+
+	v, ok = s.Get(3)
+	if !ok || v != three {
+		t.Errorf("expected key 3 to be 'three', got '%s'", v)
+	}
+}
+
+func TestDeleteMiddle(t *testing.T) {
+	s := sieve.NewSingleThread[int, string](3)
+	s.Set(1, one)
+	s.Set(2, two)
+	s.Set(3, three)
+
+	ok := s.Delete(2)
+	if !ok {
+		t.Errorf("expected Delete to return true")
+	}
+
+	if s.Len() != 2 {
+		t.Errorf("expected length 2, got %d", s.Len())
+	}
+
+	v, ok := s.Get(1)
+	if !ok || v != one {
+		t.Errorf("expected key 1 to be 'one', got '%s'", v)
+	}
+
+	v, ok = s.Get(3)
+	if !ok || v != three {
+		t.Errorf("expected key 3 to be 'three', got '%s'", v)
+	}
+}
+
+func TestDeleteThenInsert(t *testing.T) {
+	s := sieve.NewSingleThread[int, string](2)
+	s.Set(1, one)
+	s.Set(2, two)
+
+	s.Delete(1)
+	s.Set(3, three)
+
+	// should not have evicted since delete freed a slot
+	if s.Len() != 2 {
+		t.Errorf("expected length 2, got %d", s.Len())
+	}
+
+	v, ok := s.Get(2)
+	if !ok || v != two {
+		t.Errorf("expected key 2 to be 'two', got '%s'", v)
+	}
+
+	v, ok = s.Get(3)
+	if !ok || v != three {
+		t.Errorf("expected key 3 to be 'three', got '%s'", v)
+	}
+}
+
 func BenchmarkSimpleSingleThread(b *testing.B) {
 	b.ReportAllocs()
 
 	s := sieve.NewSingleThread[int, string](10)
 
 	for i := range b.N {
-		s.Set(i, "one")
+		s.Set(i, one)
 	}
 }
 
