@@ -356,6 +356,30 @@ func TestDeleteThenInsert(t *testing.T) {
 	}
 }
 
+func TestFlush(t *testing.T) {
+	s := sieve.NewSingleThread[int, string](3)
+	s.Set(1, one)
+	s.Set(2, two)
+	s.Set(3, three)
+
+	s.Flush()
+
+	if s.Len() != 0 {
+		t.Errorf("expected length 0 after flush, got %d", s.Len())
+	}
+
+	if _, ok := s.Get(1); ok {
+		t.Errorf("expected key 1 to not exist after flush")
+	}
+
+	// ensure cache is usable after flush
+	s.Set(4, "four")
+	v, ok := s.Get(4)
+	if !ok || v != "four" {
+		t.Errorf("expected key 4 to be 'four' after flush and re-insert, got '%s'", v)
+	}
+}
+
 func BenchmarkSimpleSingleThread(b *testing.B) {
 	b.ReportAllocs()
 
