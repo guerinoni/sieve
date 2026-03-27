@@ -104,7 +104,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	atNow := now()
+	atNow := time.Now()
 
 	// key already exists
 	if v, ok := s.m[key]; ok {
@@ -160,7 +160,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 func (s *Cache[K, V]) evictNode() {
 	h := s.hand
 
-	for atNow := now(); h.visited; {
+	for atNow := time.Now(); h.visited; {
 		// if the node is visited but is expired, then we can evict it
 		if s.ttl > 0 && atNow.Sub(h.access) > s.ttl {
 			break
@@ -271,7 +271,7 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 		return zeroValue, false
 	}
 
-	atNow := now()
+	atNow := time.Now()
 
 	if s.ttl > 0 && atNow.Sub(n.access) > s.ttl {
 		s.removeNodeFromLinkedList(n)
@@ -330,10 +330,6 @@ type noopMutex struct{}
 
 func (noopMutex) Lock()   {}
 func (noopMutex) Unlock() {}
-
-// now is real `time.Now` function.
-// It is a variable to make it easier to mock in tests.
-var now = time.Now
 
 func (s *Cache[K, V]) String() string {
 	s.mu.Lock()
