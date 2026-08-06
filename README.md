@@ -106,26 +106,40 @@ All sieve variants achieve the best hit rate with ~16,315 fewer misses than s3-f
 
 ## Benchmarks
 
+`BenchmarkSimple` inserts only unique keys, so the cache is always full and every
+call pays an eviction. `BenchmarkBigInput` replays the sample input as a mixed
+get and set workload, which is closer to real usage. `BenchmarkSimpleConcurrent`
+runs through `b.RunParallel`, so its cost includes the lock contention of all the
+cores.
+
+The benchmarks of the other caches live in the `examples` module, so that this
+one keeps an empty require list. `make bench` runs both.
+
 ```
 goos: darwin
 goarch: arm64
 cpu: Apple M4 Pro
+pkg: github.com/guerinoni/sieve
 
-BenchmarkSimple-14                     24,632,971      49.41 ns/op      80 B/op       1 allocs/op
-BenchmarkSimpleSingleThread-14         22,632,132      50.01 ns/op      80 B/op       1 allocs/op
-BenchmarkSimpleLRU-14                  26,519,824      44.32 ns/op      80 B/op       1 allocs/op
-BenchmarkSimpleS3FIFO-14                7,120,837     156.5  ns/op     192 B/op       4 allocs/op
-BenchmarkSimpleGolangSieve-14          10,178,019     102.4  ns/op     136 B/op       3 allocs/op
+BenchmarkSimple-14                    125,398,700      48.34 ns/op      80 B/op      1 allocs/op
+BenchmarkSimpleSingleThread-14        100,000,000      50.21 ns/op      80 B/op      1 allocs/op
+BenchmarkBigInput-14                  341,538,040      17.45 ns/op       0 B/op      0 allocs/op
+BenchmarkBigInputSingleThread-14      349,118,550      17.05 ns/op       0 B/op      0 allocs/op
 
-BenchmarkBigInput-14                1,000,000,000     0.03514 ns/op      0 B/op       0 allocs/op
-BenchmarkBigInputSingleThread-14    1,000,000,000     0.03469 ns/op      0 B/op       0 allocs/op
-BenchmarkBigInputLRU-14             1,000,000,000     0.03214 ns/op      0 B/op       0 allocs/op
-BenchmarkBigInputS3FIFO-14          1,000,000,000     0.04581 ns/op      0 B/op       0 allocs/op
-BenchmarkBigInputGolangSieve-14     1,000,000,000     0.02759 ns/op      0 B/op       0 allocs/op
+BenchmarkSimpleWithTTL-14              75,559,929      74.10 ns/op      80 B/op      1 allocs/op
+BenchmarkBigInputWithTTL-14           139,618,587      42.39 ns/op       0 B/op      0 allocs/op
+BenchmarkSimpleConcurrent-14           19,420,557     310.4  ns/op      79 B/op      0 allocs/op
+BenchmarkSimpleConcurrentWithTTL-14    13,031,634     456.9  ns/op      79 B/op      0 allocs/op
 
-BenchmarkSimpleWithTTL-14              25,683,086      49.15 ns/op      80 B/op       1 allocs/op
-BenchmarkSimpleConcurrent-14        1,000,000,000   0.0000402 ns/op      0 B/op       0 allocs/op
-BenchmarkSimpleConcurrentWithTTL-14 1,000,000,000   0.0000300 ns/op      0 B/op       0 allocs/op
+pkg: github.com/guerinoni/sieve/examples
+
+BenchmarkSimpleLRU-14                 117,051,792      51.52 ns/op      80 B/op      1 allocs/op
+BenchmarkSimpleS3FIFO-14               32,114,778     186.7  ns/op     192 B/op      4 allocs/op
+BenchmarkSimpleGolangSieve-14          51,854,761     115.7  ns/op     136 B/op      3 allocs/op
+
+BenchmarkBigInputLRU-14               298,670,770      20.04 ns/op       0 B/op      0 allocs/op
+BenchmarkBigInputS3FIFO-14            184,018,938      32.32 ns/op       0 B/op      0 allocs/op
+BenchmarkBigInputGolangSieve-14       410,981,516      14.56 ns/op       0 B/op      0 allocs/op
 ```
 
 ### Summary
@@ -133,7 +147,7 @@ BenchmarkSimpleConcurrentWithTTL-14 1,000,000,000   0.0000300 ns/op      0 B/op 
 | Metric | sieve | sieve-single-thread | golang-lru | s3-fifo | golang-sieve |
 |--------|-------|---------------------|------------|---------|--------------|
 | Hit Rate | Best | Best | Worst | Good | Best |
-| Speed (simple) | 49.41 ns | 50.01 ns | 44.32 ns | 156.5 ns | 102.4 ns |
+| Speed (insert only) | 48.34 ns | 50.21 ns | 51.52 ns | 186.7 ns | 115.7 ns |
+| Speed (mixed workload) | 17.45 ns | 17.05 ns | 20.04 ns | 32.32 ns | 14.56 ns |
 | Memory | 80 B/op | 80 B/op | 80 B/op | 192 B/op | 136 B/op |
 | Allocations | 1 | 1 | 1 | 4 | 3 |
-
