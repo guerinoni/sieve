@@ -19,19 +19,10 @@ const capacity = 100
 func main() {
 	// printMemoryUsage()
 
-	file, err := os.Open(fileName)
+	data, err := readInput()
 	if err != nil {
 		fmt.Println(err)
 		return
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
-
-	data := make([]string, 0)
-	for scanner.Scan() {
-		data = append(data, scanner.Text())
 	}
 
 	var wg sync.WaitGroup
@@ -70,6 +61,24 @@ func main() {
 	wg.Wait()
 
 	// printMemoryUsage()
+}
+
+func readInput() ([]string, error) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+
+	data := make([]string, 0)
+	for scanner.Scan() {
+		data = append(data, scanner.Text())
+	}
+
+	return data, scanner.Err()
 }
 
 func doSieve(input []string) int {

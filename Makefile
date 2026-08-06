@@ -49,6 +49,8 @@ coverage-html: coverage
 bench:
 	echo Running benchmarks...
 	go test -bench=. -benchtime=5s -benchmem $(PKG)
+	echo Running the benchmarks of the other caches...
+	cd examples && go test -bench=. -benchtime=5s -benchmem .
 
 .PHONY: bench-cmp
 bench-cmp:

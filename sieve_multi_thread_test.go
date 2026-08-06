@@ -6,9 +6,6 @@ import (
 	"testing"
 
 	"github.com/guerinoni/sieve"
-	lru "github.com/hashicorp/golang-lru/v2"
-	s3fifo "github.com/scalalang2/golang-fifo/s3fifo"
-	golangsieve "github.com/scalalang2/golang-fifo/sieve"
 )
 
 const panicError = "sieve: size must be greater than zero"
@@ -358,90 +355,6 @@ func BenchmarkBigInput(b *testing.B) {
 	lines := benchInput(b)
 
 	s := sieve.New[string, string](1000)
-
-	b.ResetTimer()
-
-	for i := range b.N {
-		d := lines[i%len(lines)]
-		if _, ok := s.Get(d); !ok {
-			s.Set(d, d)
-		}
-	}
-}
-
-func BenchmarkSimpleLRU(b *testing.B) {
-	b.ReportAllocs()
-
-	s, _ := lru.New[int, string](10)
-
-	for i := range b.N {
-		s.Add(i, one)
-	}
-}
-
-func BenchmarkBigInputLRU(b *testing.B) {
-	b.ReportAllocs()
-
-	lines := benchInput(b)
-
-	s, err := lru.New[string, string](1000)
-	if err != nil {
-		b.Fatalf("could not create lru: %v", err)
-	}
-
-	b.ResetTimer()
-
-	for i := range b.N {
-		d := lines[i%len(lines)]
-		if _, ok := s.Get(d); !ok {
-			s.Add(d, d)
-		}
-	}
-}
-
-func BenchmarkSimpleS3FIFO(b *testing.B) {
-	b.ReportAllocs()
-
-	s := s3fifo.New[int, string](10, 0)
-
-	for i := range b.N {
-		s.Set(i, one)
-	}
-}
-
-func BenchmarkBigInputS3FIFO(b *testing.B) {
-	b.ReportAllocs()
-
-	lines := benchInput(b)
-
-	s := s3fifo.New[string, string](1000, 0)
-
-	b.ResetTimer()
-
-	for i := range b.N {
-		d := lines[i%len(lines)]
-		if _, ok := s.Get(d); !ok {
-			s.Set(d, d)
-		}
-	}
-}
-
-func BenchmarkSimpleGolangSieve(b *testing.B) {
-	b.ReportAllocs()
-
-	s := golangsieve.New[int, string](10, 0)
-
-	for i := range b.N {
-		s.Set(i, one)
-	}
-}
-
-func BenchmarkBigInputGolangSieve(b *testing.B) {
-	b.ReportAllocs()
-
-	lines := benchInput(b)
-
-	s := golangsieve.New[string, string](1000, 0)
 
 	b.ResetTimer()
 
