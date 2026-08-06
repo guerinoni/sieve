@@ -2,6 +2,7 @@ version: "2"
 linters:
   default: all
   disable:
+    - gomodguard # deprecated since golangci-lint 2.12, gomodguard_v2 replaces it
     - wsl
     - varnamelen
     - paralleltest
