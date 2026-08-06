@@ -122,7 +122,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	}
 
 	// cache is full
-	if s.Len() == s.capacity {
+	if s.Len() >= s.capacity {
 		s.evictNode()
 	}
 
@@ -179,26 +179,8 @@ func (s *Cache[K, V]) evictNode() {
 		}
 	}
 
-	s.hand = h.prev
-
-	// wrap to the end if we go beyond the head
-	if s.hand == nil {
-		s.hand = s.tail
-	}
-
-	if h.next != nil {
-		h.next.prev = h.prev
-	} else { // so we are the last node
-		s.tail = h.prev
-	}
-
-	if h.prev != nil {
-		h.prev.next = h.next
-	}
-
-	if s.head == h {
-		s.head = h.next
-	}
+	s.hand = h
+	s.removeNodeFromLinkedList(h)
 
 	delete(s.m, h.key)
 
@@ -206,57 +188,31 @@ func (s *Cache[K, V]) evictNode() {
 }
 
 func (s *Cache[K, V]) removeNodeFromLinkedList(n *node[K, V]) {
-	l := s.Len()
+	// the hand moves towards the head, so it falls back on the previous node
+	if s.hand == n {
+		s.hand = n.prev
+	}
+
+	if n.prev != nil {
+		n.prev.next = n.next
+	} else {
+		s.head = n.next
+	}
+
+	if n.next != nil {
+		n.next.prev = n.prev
+	} else {
+		s.tail = n.prev
+	}
+
+	// wrap to the end if we go beyond the head
+	if s.hand == nil {
+		s.hand = s.tail
+	}
 
 	// help the GC to collect the node
-	defer func() {
-		n.prev = nil
-		n.next = nil
-	}()
-
-	if l == 1 {
-		// just reset everything
-		s.hand = nil
-		s.head = nil
-		s.tail = nil
-
-		return
-	}
-
-	const pairSize = 2
-	if l == pairSize {
-		if s.head == n {
-			s.head = s.tail
-		} else { // so n == s.tail
-			s.tail = s.head
-		}
-
-		s.hand = s.tail
-
-		return
-	}
-
-	// remove from the linked list
-
-	switch n {
-	case s.head:
-		n.next.prev = nil
-		s.head = n.next
-	case s.tail:
-		if s.hand == n {
-			s.hand = n.prev
-		}
-
-		n.prev.next = nil
-		s.tail = n.prev
-	default:
-		if s.hand == n {
-			s.hand = n.prev
-		}
-
-		n.prev.next = n.next
-		n.next.prev = n.prev
-	}
+	n.prev = nil
+	n.next = nil
 }
 
 // Get returns the value associated with the key.
