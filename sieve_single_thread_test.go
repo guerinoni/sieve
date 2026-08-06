@@ -1,8 +1,6 @@
 package sieve_test
 
 import (
-	"bufio"
-	"os"
 	"testing"
 
 	"github.com/guerinoni/sieve"
@@ -394,23 +392,14 @@ func BenchmarkSimpleSingleThread(b *testing.B) {
 func BenchmarkBigInputSingleThread(b *testing.B) {
 	b.ReportAllocs()
 
+	lines := benchInput(b)
+
 	s := sieve.NewSingleThread[string, string](1000)
 
-	file := testInputFile
+	b.ResetTimer()
 
-	f, err := os.Open(file)
-	if err != nil {
-		b.Errorf("error opening file: %v", err)
-
-		return
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
-
-	for read := scanner.Scan(); read; read = scanner.Scan() {
-		d := scanner.Text()
+	for i := range b.N {
+		d := lines[i%len(lines)]
 		if _, ok := s.Get(d); !ok {
 			s.Set(d, d)
 		}

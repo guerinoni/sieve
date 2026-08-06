@@ -1,8 +1,6 @@
 package sieve_test
 
 import (
-	"bufio"
-	"os"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -265,7 +263,7 @@ func TestHandNilPanicAfterTTLEvictions(t *testing.T) {
 func BenchmarkSimpleWithTTL(b *testing.B) {
 	b.ReportAllocs()
 
-	s := sieve.NewSingleThread[int, string](10).WithTTL(100 * time.Millisecond)
+	s := sieve.New[int, string](10).WithTTL(100 * time.Millisecond)
 
 	for i := range b.N {
 		s.Set(i, "one")
@@ -277,37 +275,25 @@ func BenchmarkSimpleConcurrentWithTTL(b *testing.B) {
 
 	s := sieve.New[int, string](10).WithTTL(100 * time.Millisecond)
 
-	for i := range 100 {
-		go func(i int) {
+	b.RunParallel(func(pb *testing.PB) {
+		for i := 0; pb.Next(); i++ {
 			s.Set(i, "one")
-		}(i)
-
-		go func(i int) {
 			s.Get(i)
-		}(i)
-	}
+		}
+	})
 }
 
 func BenchmarkBigInputWithTTL(b *testing.B) {
 	b.ReportAllocs()
 
+	lines := benchInput(b)
+
 	s := sieve.New[string, string](1000).WithTTL(100 * time.Millisecond)
 
-	file := testInputFile
+	b.ResetTimer()
 
-	f, err := os.Open(file)
-	if err != nil {
-		b.Errorf("could not open file %s: %v", file, err)
-
-		return
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
-
-	for read := scanner.Scan(); read; read = scanner.Scan() {
-		d := scanner.Text()
+	for i := range b.N {
+		d := lines[i%len(lines)]
 		if _, ok := s.Get(d); !ok {
 			s.Set(d, d)
 		}

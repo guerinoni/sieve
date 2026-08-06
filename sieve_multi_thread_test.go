@@ -14,6 +14,35 @@ import (
 const panicError = "sieve: size must be greater than zero"
 const testInputFile = "./examples/input"
 
+// benchInput loads the whole sample input once so that the benchmarks measure
+// the cache and not the file reading.
+func benchInput(b *testing.B) []string {
+	b.Helper()
+
+	f, err := os.Open(testInputFile)
+	if err != nil {
+		b.Fatalf("could not open file %s: %v", testInputFile, err)
+	}
+
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Split(bufio.ScanLines)
+
+	var lines []string
+
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	err = scanner.Err()
+	if err != nil {
+		b.Fatalf("could not read file %s: %v", testInputFile, err)
+	}
+
+	return lines
+}
+
 func TestPanicWithSizeZero(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -315,37 +344,25 @@ func BenchmarkSimpleConcurrent(b *testing.B) {
 
 	s := sieve.New[int, string](10)
 
-	for i := range 100 {
-		go func(i int) {
+	b.RunParallel(func(pb *testing.PB) {
+		for i := 0; pb.Next(); i++ {
 			s.Set(i, one)
-		}(i)
-
-		go func(i int) {
 			s.Get(i)
-		}(i)
-	}
+		}
+	})
 }
 
 func BenchmarkBigInput(b *testing.B) {
 	b.ReportAllocs()
 
+	lines := benchInput(b)
+
 	s := sieve.New[string, string](1000)
 
-	file := testInputFile
+	b.ResetTimer()
 
-	f, err := os.Open(file)
-	if err != nil {
-		b.Errorf("could not open file %s: %v", file, err)
-
-		return
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
-
-	for read := scanner.Scan(); read; read = scanner.Scan() {
-		d := scanner.Text()
+	for i := range b.N {
+		d := lines[i%len(lines)]
 		if _, ok := s.Get(d); !ok {
 			s.Set(d, d)
 		}
@@ -365,23 +382,17 @@ func BenchmarkSimpleLRU(b *testing.B) {
 func BenchmarkBigInputLRU(b *testing.B) {
 	b.ReportAllocs()
 
-	s, _ := lru.New[string, string](1000)
+	lines := benchInput(b)
 
-	file := testInputFile
-
-	f, err := os.Open(file)
+	s, err := lru.New[string, string](1000)
 	if err != nil {
-		b.Errorf("could not open file %s: %v", file, err)
-
-		return
+		b.Fatalf("could not create lru: %v", err)
 	}
-	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
+	b.ResetTimer()
 
-	for read := scanner.Scan(); read; read = scanner.Scan() {
-		d := scanner.Text()
+	for i := range b.N {
+		d := lines[i%len(lines)]
 		if _, ok := s.Get(d); !ok {
 			s.Add(d, d)
 		}
@@ -401,23 +412,14 @@ func BenchmarkSimpleS3FIFO(b *testing.B) {
 func BenchmarkBigInputS3FIFO(b *testing.B) {
 	b.ReportAllocs()
 
+	lines := benchInput(b)
+
 	s := s3fifo.New[string, string](1000, 0)
 
-	file := testInputFile
+	b.ResetTimer()
 
-	f, err := os.Open(file)
-	if err != nil {
-		b.Errorf("could not open file %s: %v", file, err)
-
-		return
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
-
-	for read := scanner.Scan(); read; read = scanner.Scan() {
-		d := scanner.Text()
+	for i := range b.N {
+		d := lines[i%len(lines)]
 		if _, ok := s.Get(d); !ok {
 			s.Set(d, d)
 		}
@@ -437,23 +439,14 @@ func BenchmarkSimpleGolangSieve(b *testing.B) {
 func BenchmarkBigInputGolangSieve(b *testing.B) {
 	b.ReportAllocs()
 
+	lines := benchInput(b)
+
 	s := golangsieve.New[string, string](1000, 0)
 
-	file := testInputFile
+	b.ResetTimer()
 
-	f, err := os.Open(file)
-	if err != nil {
-		b.Errorf("could not open file %s: %v", file, err)
-
-		return
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
-
-	for read := scanner.Scan(); read; read = scanner.Scan() {
-		d := scanner.Text()
+	for i := range b.N {
+		d := lines[i%len(lines)]
 		if _, ok := s.Get(d); !ok {
 			s.Set(d, d)
 		}
