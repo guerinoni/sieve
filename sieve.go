@@ -49,6 +49,7 @@ type Cache[K comparable, V any] struct {
 }
 
 // WithTTL is a builder function used to add the expiration management for keys.
+// It must be called before the cache is used or shared between goroutines.
 func (s *Cache[K, V]) WithTTL(ttl time.Duration) *Cache[K, V] {
 	s.ttl = ttl
 
@@ -276,7 +277,7 @@ func (s *Cache[K, V]) Flush() {
 	s.tail = nil
 	s.hand = nil
 	s.m = make(map[K]*node[K, V])
-	s.len = atomic.Int32{}
+	s.len.Store(0)
 }
 
 type noopMutex struct{}
