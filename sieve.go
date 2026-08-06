@@ -20,20 +20,14 @@ type node[K comparable, V any] struct {
 	access  time.Time
 }
 
-func (n *node[K, V]) withTTL(now time.Time) *node[K, V] {
-	n.access = now
-
-	return n
-}
-
-func newNode[K comparable, V any](key K, value V) *node[K, V] {
+func newNode[K comparable, V any](key K, value V, access time.Time) *node[K, V] {
 	return &node[K, V]{
 		key:     key,
 		value:   value,
 		prev:    nil,
 		next:    nil,
 		visited: false,
-		access:  time.Time{},
+		access:  access,
 	}
 }
 
@@ -105,7 +99,10 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	atNow := time.Now()
+	var atNow time.Time
+	if s.ttl > 0 {
+		atNow = time.Now()
+	}
 
 	// key already exists
 	if v, ok := s.m[key]; ok {
@@ -123,14 +120,10 @@ func (s *Cache[K, V]) Set(key K, value V) {
 
 	// cache is full
 	if s.Len() >= s.capacity {
-		s.evictNode()
+		s.evictNode(atNow)
 	}
 
-	n := newNode(key, value)
-
-	if s.ttl > 0 {
-		n = n.withTTL(atNow)
-	}
+	n := newNode(key, value, atNow)
 
 	// insert into the cache
 	s.m[key] = n
@@ -158,10 +151,10 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	}
 }
 
-func (s *Cache[K, V]) evictNode() {
+func (s *Cache[K, V]) evictNode(atNow time.Time) {
 	h := s.hand
 
-	for atNow := time.Now(); h.visited; {
+	for h.visited {
 		// if the node is visited but is expired, then we can evict it
 		if s.ttl > 0 && atNow.Sub(h.access) > s.ttl {
 			break
@@ -229,22 +222,24 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 		return zeroValue, false
 	}
 
-	atNow := time.Now()
+	if s.ttl > 0 {
+		atNow := time.Now()
 
-	if s.ttl > 0 && atNow.Sub(n.access) > s.ttl {
-		s.removeNodeFromLinkedList(n)
+		if atNow.Sub(n.access) > s.ttl {
+			s.removeNodeFromLinkedList(n)
 
-		// remove the node from the cache
-		delete(s.m, n.key)
+			// remove the node from the cache
+			delete(s.m, n.key)
 
-		// decrease length
-		s.len.Add(-1)
+			// decrease length
+			s.len.Add(-1)
 
-		return zeroValue, false
+			return zeroValue, false
+		}
+
+		// update the access time
+		n.access = atNow
 	}
-
-	// update the access time
-	n.access = atNow
 
 	// mark the node as visited
 	n.visited = true
