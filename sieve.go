@@ -86,12 +86,15 @@ func NewSingleThread[K comparable, V any](size int32) *Cache[K, V] {
 }
 
 // Len returns the number of elements in the sieve.
+// With a TTL configured, Len counts entries that have expired but have not
+// been purged yet: entries are removed lazily, on the next Get or Set call.
 func (s *Cache[K, V]) Len() int32 {
 	return s.len.Load()
 }
 
 // Set inserts a new key-value pair in the sieve.
-// If the key already exists, it does nothing.
+// If the key already exists, it updates the value, marks the node as
+// visited and, with a TTL configured, refreshes its access time.
 // The order of the insert will be something like:
 // [head] -> [node] -> [node] -> ... -> [tail]
 // The hand pointer is moving from the tail to the head.

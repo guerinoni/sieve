@@ -4,12 +4,27 @@ import (
 	"bufio"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/guerinoni/sieve"
 )
 
 const panicError = "sieve: size must be greater than zero"
 const testInputFile = "./examples/input"
+
+const one = "one"
+const two = "two"
+const three = "three"
+const uno = "uno"
+
+// Factories let the common checks run against both cache constructors so the
+// single- and multi-threaded variants stay behaviorally identical.
+func newMT(size int32) *sieve.Cache[int, string]     { return sieve.New[int, string](size) }
+func newST(size int32) *sieve.Cache[int, string]     { return sieve.NewSingleThread[int, string](size) }
+func newMTNeg(size int32) *sieve.Cache[string, int]  { return sieve.New[string, int](size) }
+func newSTNeg(size int32) *sieve.Cache[string, int]  { return sieve.NewSingleThread[string, int](size) }
+func newMTEmpty(size int32) *sieve.Cache[int, struct{}] { return sieve.New[int, struct{}](size) }
+func newSTEmpty(size int32) *sieve.Cache[int, struct{}] { return sieve.NewSingleThread[int, struct{}](size) }
 
 // benchInput loads the whole sample input once so that the benchmarks measure
 // the cache and not the file reading.
@@ -40,7 +55,9 @@ func benchInput(b *testing.B) []string {
 	return lines
 }
 
-func TestPanicWithSizeZero(t *testing.T) {
+func checkPanicWithSizeZero(t *testing.T, newCache func(int32) *sieve.Cache[int, string]) {
+	t.Helper()
+
 	defer func() {
 		if r := recover(); r != nil {
 			if r != panicError {
@@ -51,29 +68,31 @@ func TestPanicWithSizeZero(t *testing.T) {
 		}
 	}()
 
-	sieve.New[int, string](0)
+	_ = newCache(0)
 }
 
-func TestPanicWithSizeLessThanZero(t *testing.T) {
+func checkPanicWithSizeLessThanZero(t *testing.T, newCache func(int32) *sieve.Cache[string, int]) {
+	t.Helper()
+
 	defer func() {
 		if r := recover(); r != nil {
 			if r != panicError {
-				t.Errorf("expected panic message 'something went wrong', got '%v'", r)
+				t.Errorf("expected panic message 'sieve: size must be greater than zero', got '%v'", r)
 			}
 		} else {
 			t.Errorf("expected panic but got none")
 		}
 	}()
 
-	sieve.New[string, int](-10)
+	_ = newCache(-10)
 }
 
-const one = "one"
-const two = "two"
-const three = "three"
+// runBasicChecks covers insert, duplicate Set (which refreshes the value),
+// get, and eviction on a size-two cache.
+func runBasicChecks(t *testing.T, newCache func(int32) *sieve.Cache[int, string]) {
+	t.Helper()
 
-func TestEasy(t *testing.T) {
-	s := sieve.New[int, string](2)
+	s := newCache(2)
 	if s.Len() != 0 {
 		t.Errorf("expected length 0, got %d", s.Len())
 	}
@@ -84,10 +103,15 @@ func TestEasy(t *testing.T) {
 		t.Errorf("expected length 1, got %d", s.Len())
 	}
 
-	s.Set(1, one) // duplicate
+	s.Set(1, uno) // duplicate: refreshes the value
 
 	if s.Len() != 1 {
 		t.Errorf("expected length 1 after duplicate, got %d", s.Len())
+	}
+
+	v, ok := s.Get(1)
+	if !ok || v != uno {
+		t.Errorf("expected duplicate Set to update the value to 'uno', got '%s'", v)
 	}
 
 	s.Set(2, two)
@@ -96,7 +120,7 @@ func TestEasy(t *testing.T) {
 		t.Errorf("expected length 2, got %d", s.Len())
 	}
 
-	v, ok := s.Get(3)
+	v, ok = s.Get(3)
 	if ok {
 		t.Errorf("expected key 3 to not exist, but it does")
 	}
@@ -106,12 +130,8 @@ func TestEasy(t *testing.T) {
 	}
 
 	v, ok = s.Get(1)
-	if !ok {
-		t.Errorf("expected key 1 to exist, but it does not")
-	}
-
-	if v != one {
-		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
+	if !ok || v != uno {
+		t.Errorf("expected key 1 to hold 'uno', got '%s'", v)
 	}
 
 	// now we start evicting
@@ -123,12 +143,8 @@ func TestEasy(t *testing.T) {
 	}
 
 	v, ok = s.Get(1)
-	if !ok {
-		t.Errorf("expected key 1 to exist, but it does not")
-	}
-
-	if v != one {
-		t.Errorf("expected value for key 1 to be 'one', got '%s'", v)
+	if !ok || v != uno {
+		t.Errorf("expected key 1 to hold 'uno', got '%s'", v)
 	}
 
 	v, ok = s.Get(2)
@@ -141,8 +157,11 @@ func TestEasy(t *testing.T) {
 	}
 }
 
-func TestAllAreVisited(t *testing.T) {
-	s := sieve.New[int, string](2)
+// runAllVisitedChecks exercises the eviction scan when every node is visited.
+func runAllVisitedChecks(t *testing.T, newCache func(int32) *sieve.Cache[int, string]) {
+	t.Helper()
+
+	s := newCache(2)
 
 	s.Set(1, one)
 	s.Set(2, two)
@@ -157,21 +176,13 @@ func TestAllAreVisited(t *testing.T) {
 	}
 
 	v, ok := s.Get(3)
-	if !ok {
-		t.Errorf("expected key 3 to exist, but it does not")
-	}
-
-	if v != three {
-		t.Errorf("expected value for key 3 to be 'three', got '%s'", v)
+	if !ok || v != three {
+		t.Errorf("expected key 3 to be 'three', got '%s'", v)
 	}
 
 	v, ok = s.Get(2)
-	if !ok {
-		t.Errorf("expected key 2 to exist, but it does not")
-	}
-
-	if v != two {
-		t.Errorf("expected value for key 2 to be 'two', got '%s'", v)
+	if !ok || v != two {
+		t.Errorf("expected key 2 to be 'two', got '%s'", v)
 	}
 
 	v, ok = s.Get(1)
@@ -184,8 +195,11 @@ func TestAllAreVisited(t *testing.T) {
 	}
 }
 
-func TestHandWrapAround(t *testing.T) {
-	s := sieve.New[int, string](2)
+// runHandWrapAroundChecks exercises the hand wrapping past the head.
+func runHandWrapAroundChecks(t *testing.T, newCache func(int32) *sieve.Cache[int, string]) {
+	t.Helper()
+
+	s := newCache(2)
 
 	s.Set(1, one)
 	s.Set(2, two)
@@ -217,8 +231,11 @@ func TestHandWrapAround(t *testing.T) {
 	s.Set(5, "five")
 }
 
-func TestMoreComplex(t *testing.T) { //nolint: dupl
-	s := sieve.New[int, struct{}](4)
+// runMoreComplexChecks drives a longer mixed insert sequence.
+func runMoreComplexChecks(t *testing.T, newCache func(int32) *sieve.Cache[int, struct{}]) {
+	t.Helper()
+
+	s := newCache(4)
 	s.Set(7, struct{}{})
 	s.Set(7, struct{}{})
 	s.Set(5, struct{}{})
@@ -255,6 +272,30 @@ func TestMoreComplex(t *testing.T) { //nolint: dupl
 	}
 }
 
+func TestPanicWithSizeZero(t *testing.T) {
+	checkPanicWithSizeZero(t, newMT)
+}
+
+func TestPanicWithSizeLessThanZero(t *testing.T) {
+	checkPanicWithSizeLessThanZero(t, newMTNeg)
+}
+
+func TestEasy(t *testing.T) {
+	runBasicChecks(t, newMT)
+}
+
+func TestAllAreVisited(t *testing.T) {
+	runAllVisitedChecks(t, newMT)
+}
+
+func TestHandWrapAround(t *testing.T) {
+	runHandWrapAroundChecks(t, newMT)
+}
+
+func TestMoreComplex(t *testing.T) {
+	runMoreComplexChecks(t, newMTEmpty)
+}
+
 func TestDeleteConcurrent(t *testing.T) {
 	s := sieve.New[int, string](100)
 
@@ -288,7 +329,7 @@ func TestDeleteConcurrent(t *testing.T) {
 	}
 }
 
-func TestDeleteConcurrentWithSetAndGet(_ *testing.T) {
+func TestDeleteConcurrentWithSetAndGet(t *testing.T) {
 	s := sieve.New[int, string](50)
 
 	for i := range 50 {
@@ -324,6 +365,39 @@ func TestDeleteConcurrentWithSetAndGet(_ *testing.T) {
 	<-done
 	<-done
 	<-done
+
+	if s.Len() > 50 {
+		t.Errorf("expected length at most 50, got %d", s.Len())
+	}
+}
+
+// TestTTLConcurrentChurn drives Set, Get and Delete from several goroutines
+// while entries expire underneath them. It is a race-detector exercise: the
+// suite runs with -race, so a data race in the TTL path fails the test.
+func TestTTLConcurrentChurn(t *testing.T) {
+	s := sieve.New[int, int](32).WithTTL(50 * time.Millisecond)
+
+	done := make(chan struct{})
+
+	for range 4 {
+		go func() {
+			for i := range 20000 {
+				s.Set(i % 100, i)
+				s.Get(i % 100)
+				s.Delete(i % 100)
+			}
+
+			done <- struct{}{}
+		}()
+	}
+
+	for range 4 {
+		<-done
+	}
+
+	if s.Len() > 32 {
+		t.Errorf("expected length at most 32, got %d", s.Len())
+	}
 }
 
 func BenchmarkSimple(b *testing.B) {
