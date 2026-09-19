@@ -68,6 +68,9 @@ _, ok = s.Get(1) // value is still here
 v, ok := s.Get(1) // value is gone
 ```
 
+Note that expired entries are removed lazily: `Len` counts them until a `Get`
+or `Set` touches them, so with a TTL set `Len` is not a liveness metric.
+
 
 ## How it works
 
@@ -141,6 +144,12 @@ BenchmarkBigInputLRU-14               298,670,770      20.04 ns/op       0 B/op 
 BenchmarkBigInputS3FIFO-14            184,018,938      32.32 ns/op       0 B/op      0 allocs/op
 BenchmarkBigInputGolangSieve-14       410,981,516      14.56 ns/op       0 B/op      0 allocs/op
 ```
+
+Note: `-benchmem` reports per-operation averages rounded to integers, which
+hides the allocations of the mixed workloads. `BenchmarkBigInput` misses on
+about a third of the operations (see the miss counts above), and every miss
+inserts and evicts one node, yet its row reads `0 B/op 0 allocs/op`. The rows
+that matter for node cost are the insert-only `BenchmarkSimple` ones.
 
 ### Summary
 
