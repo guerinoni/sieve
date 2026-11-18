@@ -2,8 +2,9 @@
 
 In memory cache with sieve eviction algorithm in pure Go.
 
-- [x] thread-safe
+- [x] thread-safe, with cache hits sharing a read lock
 - [x] opt-out safety to use in single thread with more performance
+- [x] no allocation per insert once the cache is full
 - [x] zero deps
 - [x] no CGO
 - [x] coverage 100%
@@ -87,6 +88,17 @@ Promotion and demotion are internal cache operations designed to maintain an eff
 	•	Efficiency, as decisions are made with more data about an object’s popularity.
 
 2.	Quick demotion involves rapidly removing objects soon after insertion, particularly if they exhibit low popularity. This strategy is especially effective in handling workloads where objects are frequently scanned but rarely reused, as discussed in prior studies [16, 60, 67, 70, 75, 77]. Recent research [94] extends this concept to web cache workloads, demonstrating that quick demotion is beneficial because these workloads also follow Power-law distributions. With most objects being unpopular, quick demotion helps optimize cache usage by prioritizing valuable storage for high-demand content.
+
+#### Notes from the paper
+
+- A hit only sets the visited bit and never moves the node, so `Get` runs under
+  a shared read lock and concurrent hits do not serialize (§3.1 and §4.3). A
+  node that is already visited is not written again, so hot keys do not bounce
+  their cache line between the cores.
+- SIEVE is not scan-resistant (§7.2). A scan can push popular keys out, and
+  without a ghost history the cache cannot recognize them when they come back.
+  For block or page workloads with scans, an algorithm with a ghost queue such
+  as ARC or S3-FIFO can do better.
 
 ## Comparison
 
