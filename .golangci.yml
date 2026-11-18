@@ -3,6 +3,7 @@ linters:
   default: all
   disable:
     - gomodguard # deprecated since golangci-lint 2.12, gomodguard_v2 replaces it
+    - exhaustruct # deprecated since golangci-lint 2.13, exhaustruct_v5 replaces it
     - wsl
     - varnamelen
     - paralleltest
