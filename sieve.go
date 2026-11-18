@@ -177,14 +177,11 @@ func (s *Cache[K, V]) evictNode(atNow time.Time) {
 	}
 
 	s.hand = h
-	s.removeNodeFromLinkedList(h)
-
-	delete(s.m, h.key)
-
-	s.len.Add(-1)
+	s.remove(h)
 }
 
-func (s *Cache[K, V]) removeNodeFromLinkedList(n *node[K, V]) {
+// remove drops the node from the linked list and the map.
+func (s *Cache[K, V]) remove(n *node[K, V]) {
 	// the hand moves towards the head, so it falls back on the previous node
 	if s.hand == n {
 		s.hand = n.prev
@@ -210,6 +207,10 @@ func (s *Cache[K, V]) removeNodeFromLinkedList(n *node[K, V]) {
 	// help the GC to collect the node
 	n.prev = nil
 	n.next = nil
+
+	delete(s.m, n.key)
+
+	s.len.Add(-1)
 }
 
 // Get returns the value associated with the key.
@@ -230,13 +231,7 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 		atNow := time.Now()
 
 		if atNow.Sub(n.access) > s.ttl {
-			s.removeNodeFromLinkedList(n)
-
-			// remove the node from the cache
-			delete(s.m, n.key)
-
-			// decrease length
-			s.len.Add(-1)
+			s.remove(n)
 
 			return zeroValue, false
 		}
@@ -262,11 +257,7 @@ func (s *Cache[K, V]) Delete(key K) bool {
 		return false
 	}
 
-	s.removeNodeFromLinkedList(n)
-
-	delete(s.m, n.key)
-
-	s.len.Add(-1)
+	s.remove(n)
 
 	return true
 }
