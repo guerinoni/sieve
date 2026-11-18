@@ -3,6 +3,7 @@ package sieve_test
 import (
 	"bufio"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -305,26 +306,21 @@ func TestDeleteConcurrent(t *testing.T) {
 		s.Set(i, "v")
 	}
 
-	done := make(chan struct{})
+	var wg sync.WaitGroup
 
-	go func() {
+	wg.Go(func() {
 		for i := range 50 {
 			s.Delete(i)
 		}
+	})
 
-		done <- struct{}{}
-	}()
-
-	go func() {
+	wg.Go(func() {
 		for i := 50; i < 100; i++ {
 			s.Delete(i)
 		}
+	})
 
-		done <- struct{}{}
-	}()
-
-	<-done
-	<-done
+	wg.Wait()
 
 	if s.Len() != 0 {
 		t.Errorf("expected length 0, got %d", s.Len())
@@ -338,35 +334,27 @@ func TestDeleteConcurrentWithSetAndGet(t *testing.T) {
 		s.Set(i, "v")
 	}
 
-	done := make(chan struct{})
+	var wg sync.WaitGroup
 
-	go func() {
+	wg.Go(func() {
 		for i := range 50 {
 			s.Delete(i)
 		}
+	})
 
-		done <- struct{}{}
-	}()
-
-	go func() {
+	wg.Go(func() {
 		for i := 50; i < 100; i++ {
 			s.Set(i, "v")
 		}
+	})
 
-		done <- struct{}{}
-	}()
-
-	go func() {
+	wg.Go(func() {
 		for i := range 100 {
 			s.Get(i)
 		}
+	})
 
-		done <- struct{}{}
-	}()
-
-	<-done
-	<-done
-	<-done
+	wg.Wait()
 
 	if s.Len() > 50 {
 		t.Errorf("expected length at most 50, got %d", s.Len())
@@ -379,23 +367,19 @@ func TestDeleteConcurrentWithSetAndGet(t *testing.T) {
 func TestTTLConcurrentChurn(t *testing.T) {
 	s := sieve.New[int, int](32).WithTTL(50 * time.Millisecond)
 
-	done := make(chan struct{})
+	var wg sync.WaitGroup
 
 	for range 4 {
-		go func() {
+		wg.Go(func() {
 			for i := range 20000 {
 				s.Set(i%100, i)
 				s.Get(i % 100)
 				s.Delete(i % 100)
 			}
-
-			done <- struct{}{}
-		}()
+		})
 	}
 
-	for range 4 {
-		<-done
-	}
+	wg.Wait()
 
 	if s.Len() > 32 {
 		t.Errorf("expected length at most 32, got %d", s.Len())

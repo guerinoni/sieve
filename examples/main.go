@@ -26,37 +26,31 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(5)
 
-	go func() {
+	wg.Go(func() {
 		missCountSieve := doSieve(data)
 		fmt.Printf("Miss count sieve:			%d\n", missCountSieve)
-		wg.Done()
-	}()
+	})
 
-	go func() {
+	wg.Go(func() {
 		missCountSieveST := doSieveSingleThread(data)
 		fmt.Printf("Miss count sieve-single-thread:		%d\n", missCountSieveST)
-		wg.Done()
-	}()
+	})
 
-	go func() {
+	wg.Go(func() {
 		missCountLRU := doLRU(data)
 		fmt.Printf("Miss count golang-lru:			%d\n", missCountLRU)
-		wg.Done()
-	}()
+	})
 
-	go func() {
+	wg.Go(func() {
 		missCountFifo := doFifo(data)
 		fmt.Printf("Miss count s3-fifo:			%d\n", missCountFifo)
-		wg.Done()
-	}()
+	})
 
-	go func() {
+	wg.Go(func() {
 		missCountGolangSieve := doGolangSieve(data)
 		fmt.Printf("Miss count golang-sieve:		%d\n", missCountGolangSieve)
-		wg.Done()
-	}()
+	})
 
 	wg.Wait()
 
