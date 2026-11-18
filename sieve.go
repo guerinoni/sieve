@@ -16,8 +16,9 @@ type node[K comparable, V any] struct {
 	prev *node[K, V]
 	next *node[K, V]
 
+	// access is the time of the last access, in nanoseconds since Cache.epoch.
+	access  int64
 	visited bool
-	access  time.Time
 }
 
 // Cache is a data structure working as a cache with a fixed size.
@@ -33,6 +34,9 @@ type Cache[K comparable, V any] struct {
 	capacity int32
 	len      atomic.Int32
 	ttl      time.Duration
+	// epoch is the origin of the node access times. Its monotonic clock reading
+	// keeps the TTL immune to wall clock changes.
+	epoch time.Time
 
 	mu sync.Locker
 }
@@ -41,6 +45,7 @@ type Cache[K comparable, V any] struct {
 // It must be called before the cache is used or shared between goroutines.
 func (s *Cache[K, V]) WithTTL(ttl time.Duration) *Cache[K, V] {
 	s.ttl = ttl
+	s.epoch = time.Now()
 
 	return s
 }
@@ -61,6 +66,7 @@ func New[K comparable, V any](size int32) *Cache[K, V] {
 		capacity: size,
 		len:      atomic.Int32{},
 		ttl:      0,
+		epoch:    time.Time{},
 		mu:       &sync.Mutex{},
 	}
 }
@@ -92,10 +98,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var atNow time.Time
-	if s.ttl > 0 {
-		atNow = time.Now()
-	}
+	now := s.now()
 
 	// key already exists
 	if v, ok := s.m[key]; ok {
@@ -106,7 +109,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 		v.value = value
 
 		// update the access time
-		v.access = atNow
+		v.access = now
 
 		return
 	}
@@ -115,7 +118,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 
 	// a full cache recycles the evicted node, so it inserts without allocating
 	if s.Len() >= s.capacity {
-		n = s.evictNode(atNow)
+		n = s.evictNode(now)
 	} else {
 		n = new(node[K, V])
 	}
@@ -123,7 +126,7 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	n.key = key
 	n.value = value
 	n.visited = false
-	n.access = atNow
+	n.access = now
 
 	// insert into the cache
 	s.m[key] = n
@@ -151,13 +154,27 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	}
 }
 
+// now returns the nanoseconds elapsed since the epoch. Without a TTL it returns
+// 0, so the clock is only read when it matters.
+func (s *Cache[K, V]) now() int64 {
+	if s.ttl <= 0 {
+		return 0
+	}
+
+	return int64(time.Since(s.epoch))
+}
+
+func (s *Cache[K, V]) expired(n *node[K, V], now int64) bool {
+	return s.ttl > 0 && now-n.access > int64(s.ttl)
+}
+
 // evictNode unlinks the next victim and returns it, so Set can reuse it.
-func (s *Cache[K, V]) evictNode(atNow time.Time) *node[K, V] {
+func (s *Cache[K, V]) evictNode(now int64) *node[K, V] {
 	h := s.hand
 
 	for h.visited {
 		// if the node is visited but is expired, then we can evict it
-		if s.ttl > 0 && atNow.Sub(h.access) > s.ttl {
+		if s.expired(h, now) {
 			break
 		}
 
@@ -227,16 +244,16 @@ func (s *Cache[K, V]) Get(key K) (V, bool) {
 	}
 
 	if s.ttl > 0 {
-		atNow := time.Now()
+		now := s.now()
 
-		if atNow.Sub(n.access) > s.ttl {
+		if s.expired(n, now) {
 			s.remove(n)
 
 			return zeroValue, false
 		}
 
 		// update the access time
-		n.access = atNow
+		n.access = now
 	}
 
 	// mark the node as visited
