@@ -3,6 +3,7 @@ package sieve_test
 import (
 	"math/rand/v2"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -45,6 +46,75 @@ func TestMissCountMatchesReference(t *testing.T) {
 			if misses != tc.misses {
 				t.Errorf("%s(%d): %d misses, want %d", name, tc.capacity, misses, tc.misses)
 			}
+		}
+	}
+}
+
+// TestConcurrentZipfStress hits one cache from every core with the skewed key
+// distribution the paper targets. It is meant for -race, and it also checks
+// that a hit never returns the value of another key, which is how a recycled
+// node leaking to a reader would show up.
+func TestConcurrentZipfStress(t *testing.T) {
+	const capacity = 1 << 10
+
+	for _, ttl := range []time.Duration{0, time.Microsecond} {
+		t.Run(ttl.String(), func(t *testing.T) {
+			s := sieve.New[uint64, uint64](capacity)
+			if ttl > 0 {
+				s = s.WithTTL(ttl)
+			}
+
+			var wg sync.WaitGroup
+
+			//nolint:gosec // deterministic seeds are what make the failures reproducible
+			seeds := rand.New(rand.NewPCG(0, 0))
+
+			for range runtime.GOMAXPROCS(0) {
+				rnd := rand.New(rand.NewPCG(seeds.Uint64(), 0)) //nolint:gosec // same as above
+
+				wg.Go(func() { stressWorker(t, s, rnd) })
+			}
+
+			wg.Wait()
+
+			if s.Len() > capacity {
+				t.Fatalf("Len is %d, over the capacity %d", s.Len(), capacity)
+			}
+
+			if got, want := nodesInList(s.String()), int(s.Len()); got != want {
+				t.Fatalf("list holds %d nodes but Len is %d", got, want)
+			}
+		})
+	}
+}
+
+// stressWorker replays a Zipf key sequence with the cache-aside pattern and an
+// occasional Delete, and checks that every hit returns the value of its own key.
+func stressWorker(t *testing.T, s *sieve.Cache[uint64, uint64], rnd *rand.Rand) {
+	t.Helper()
+
+	const (
+		keys        = 1 << 14
+		ops         = 1 << 14
+		deleteOneIn = 20
+	)
+
+	zipf := rand.NewZipf(rnd, zipfSkew, 1, keys-1)
+
+	for range ops {
+		k := zipf.Uint64()
+
+		if rnd.IntN(deleteOneIn) == 0 {
+			s.Delete(k)
+
+			continue
+		}
+
+		v, ok := s.Get(k)
+		if !ok {
+			s.Set(k, k)
+		} else if v != k {
+			t.Errorf("Get(%d) returned %d", k, v)
 		}
 	}
 }
