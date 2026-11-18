@@ -39,7 +39,7 @@ func BenchmarkSimpleLRU(b *testing.B) {
 		b.Fatalf("could not create lru: %v", err)
 	}
 
-	for i := range b.N {
+	for i := 0; b.Loop(); i++ {
 		s.Add(i, one)
 	}
 }
@@ -54,9 +54,7 @@ func BenchmarkBigInputLRU(b *testing.B) {
 		b.Fatalf("could not create lru: %v", err)
 	}
 
-	b.ResetTimer()
-
-	for i := range b.N {
+	for i := 0; b.Loop(); i++ {
 		d := lines[i%len(lines)]
 		if _, ok := s.Get(d); !ok {
 			s.Add(d, d)
@@ -69,7 +67,7 @@ func BenchmarkSimpleS3FIFO(b *testing.B) {
 
 	s := s3fifo.New[int, string](simpleCapacity, 0)
 
-	for i := range b.N {
+	for i := 0; b.Loop(); i++ {
 		s.Set(i, one)
 	}
 }
@@ -81,9 +79,7 @@ func BenchmarkBigInputS3FIFO(b *testing.B) {
 
 	s := s3fifo.New[string, string](bigInputCapacity, 0)
 
-	b.ResetTimer()
-
-	for i := range b.N {
+	for i := 0; b.Loop(); i++ {
 		d := lines[i%len(lines)]
 		if _, ok := s.Get(d); !ok {
 			s.Set(d, d)
@@ -96,7 +92,7 @@ func BenchmarkSimpleGolangSieve(b *testing.B) {
 
 	s := golangsieve.New[int, string](simpleCapacity, 0)
 
-	for i := range b.N {
+	for i := 0; b.Loop(); i++ {
 		s.Set(i, one)
 	}
 }
@@ -108,9 +104,7 @@ func BenchmarkBigInputGolangSieve(b *testing.B) {
 
 	s := golangsieve.New[string, string](bigInputCapacity, 0)
 
-	b.ResetTimer()
-
-	for i := range b.N {
+	for i := 0; b.Loop(); i++ {
 		d := lines[i%len(lines)]
 		if _, ok := s.Get(d); !ok {
 			s.Set(d, d)

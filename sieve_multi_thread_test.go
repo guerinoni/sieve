@@ -407,7 +407,7 @@ func BenchmarkSimple(b *testing.B) {
 
 	s := sieve.New[int, string](10)
 
-	for i := range b.N {
+	for i := 0; b.Loop(); i++ {
 		s.Set(i, one)
 	}
 }
@@ -432,9 +432,7 @@ func BenchmarkBigInput(b *testing.B) {
 
 	s := sieve.New[string, string](1000)
 
-	b.ResetTimer()
-
-	for i := range b.N {
+	for i := 0; b.Loop(); i++ {
 		d := lines[i%len(lines)]
 		if _, ok := s.Get(d); !ok {
 			s.Set(d, d)
