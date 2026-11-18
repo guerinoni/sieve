@@ -17,8 +17,10 @@ type node[K comparable, V any] struct {
 	next *node[K, V]
 
 	// access is the time of the last access, in nanoseconds since Cache.epoch.
-	access  int64
-	visited bool
+	// Both access and visited are atomic because Get updates them under the
+	// read lock.
+	access  atomic.Int64
+	visited atomic.Bool
 }
 
 // Cache is a data structure working as a cache with a fixed size.
@@ -38,7 +40,13 @@ type Cache[K comparable, V any] struct {
 	// keeps the TTL immune to wall clock changes.
 	epoch time.Time
 
-	mu sync.Locker
+	mu rwLocker
+}
+
+type rwLocker interface {
+	sync.Locker
+	RLock()
+	RUnlock()
 }
 
 // WithTTL is a builder function used to add the expiration management for keys.
@@ -67,7 +75,7 @@ func New[K comparable, V any](size int32) *Cache[K, V] {
 		len:      atomic.Int32{},
 		ttl:      0,
 		epoch:    time.Time{},
-		mu:       &sync.Mutex{},
+		mu:       &sync.RWMutex{},
 	}
 }
 
@@ -103,13 +111,13 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	// key already exists
 	if v, ok := s.m[key]; ok {
 		// mark the node visited
-		v.visited = true
+		v.visited.Store(true)
 
 		// update the value
 		v.value = value
 
 		// update the access time
-		v.access = now
+		v.access.Store(now)
 
 		return
 	}
@@ -125,8 +133,8 @@ func (s *Cache[K, V]) Set(key K, value V) {
 
 	n.key = key
 	n.value = value
-	n.visited = false
-	n.access = now
+	n.visited.Store(false)
+	n.access.Store(now)
 
 	// insert into the cache
 	s.m[key] = n
@@ -165,21 +173,21 @@ func (s *Cache[K, V]) now() int64 {
 }
 
 func (s *Cache[K, V]) expired(n *node[K, V], now int64) bool {
-	return s.ttl > 0 && now-n.access > int64(s.ttl)
+	return s.ttl > 0 && now-n.access.Load() > int64(s.ttl)
 }
 
 // evictNode unlinks the next victim and returns it, so Set can reuse it.
 func (s *Cache[K, V]) evictNode(now int64) *node[K, V] {
 	h := s.hand
 
-	for h.visited {
+	for h.visited.Load() {
 		// if the node is visited but is expired, then we can evict it
 		if s.expired(h, now) {
 			break
 		}
 
 		// don't evict the node, just mark it as not visited
-		h.visited = false
+		h.visited.Store(false)
 
 		// move hand towards the head
 		h = h.prev
@@ -230,36 +238,60 @@ func (s *Cache[K, V]) remove(n *node[K, V]) {
 }
 
 // Get returns the value associated with the key.
-// If the key does not exist, it returns zero value an false, otherwise the value and true.
+// If the key does not exist, it returns zero value and false, otherwise the value and true.
+// A hit only sets the visited bit and never moves the node, so concurrent Get
+// calls share a read lock, as section 3 of the SIEVE paper points out.
 func (s *Cache[K, V]) Get(key K) (V, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	var zeroValue V
+	s.mu.RLock()
 
 	n, ok := s.m[key]
-
 	if !ok {
+		s.mu.RUnlock()
+
+		var zeroValue V
+
 		return zeroValue, false
 	}
 
-	if s.ttl > 0 {
-		now := s.now()
+	now := s.now()
 
-		if s.expired(n, now) {
-			s.remove(n)
+	if s.expired(n, now) {
+		s.mu.RUnlock()
 
-			return zeroValue, false
-		}
-
-		// update the access time
-		n.access = now
+		return s.expire(key)
 	}
 
-	// mark the node as visited
-	n.visited = true
+	if s.ttl > 0 {
+		// update the access time
+		n.access.Store(now)
+	}
 
-	return n.value, true
+	// a hot node is already visited: skipping the store keeps its cache line
+	// shared between the cores
+	if !n.visited.Load() {
+		n.visited.Store(true)
+	}
+
+	value := n.value
+
+	s.mu.RUnlock()
+
+	return value, true
+}
+
+// expire removes the key under the write lock. It checks the node again because
+// another goroutine can refresh or remove it once Get releases the read lock.
+func (s *Cache[K, V]) expire(key K) (V, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if n, ok := s.m[key]; ok && s.expired(n, s.now()) {
+		s.remove(n)
+	}
+
+	var zeroValue V
+
+	return zeroValue, false
 }
 
 // Delete removes the element with the given key from the sieve.
@@ -292,8 +324,10 @@ func (s *Cache[K, V]) Flush() {
 
 type noopMutex struct{}
 
-func (noopMutex) Lock()   {}
-func (noopMutex) Unlock() {}
+func (noopMutex) Lock()    {}
+func (noopMutex) Unlock()  {}
+func (noopMutex) RLock()   {}
+func (noopMutex) RUnlock() {}
 
 func (s *Cache[K, V]) String() string {
 	s.mu.Lock()
