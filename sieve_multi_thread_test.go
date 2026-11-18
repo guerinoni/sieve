@@ -29,14 +29,14 @@ func newSTEmpty(size int32) *sieve.Cache[int, struct{}] {
 	return sieve.NewSingleThread[int, struct{}](size)
 }
 
-// benchInput loads the whole sample input once so that the benchmarks measure
+// sampleInput loads the whole sample input once so that the benchmarks measure
 // the cache and not the file reading.
-func benchInput(b *testing.B) []string {
-	b.Helper()
+func sampleInput(tb testing.TB) []string {
+	tb.Helper()
 
 	f, err := os.Open(testInputFile)
 	if err != nil {
-		b.Fatalf("could not open file %s: %v", testInputFile, err)
+		tb.Fatalf("could not open file %s: %v", testInputFile, err)
 	}
 
 	defer f.Close()
@@ -52,7 +52,7 @@ func benchInput(b *testing.B) []string {
 
 	err = scanner.Err()
 	if err != nil {
-		b.Fatalf("could not read file %s: %v", testInputFile, err)
+		tb.Fatalf("could not read file %s: %v", testInputFile, err)
 	}
 
 	return lines
@@ -412,7 +412,7 @@ func BenchmarkSimpleConcurrent(b *testing.B) {
 func BenchmarkBigInput(b *testing.B) {
 	b.ReportAllocs()
 
-	lines := benchInput(b)
+	lines := sampleInput(b)
 
 	s := sieve.New[string, string](1000)
 

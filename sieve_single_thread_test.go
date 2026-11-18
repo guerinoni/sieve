@@ -205,7 +205,7 @@ func BenchmarkSimpleSingleThread(b *testing.B) {
 func BenchmarkBigInputSingleThread(b *testing.B) {
 	b.ReportAllocs()
 
-	lines := benchInput(b)
+	lines := sampleInput(b)
 
 	s := sieve.NewSingleThread[string, string](1000)
 

@@ -286,7 +286,7 @@ func BenchmarkSimpleConcurrentWithTTL(b *testing.B) {
 func BenchmarkBigInputWithTTL(b *testing.B) {
 	b.ReportAllocs()
 
-	lines := benchInput(b)
+	lines := sampleInput(b)
 
 	s := sieve.New[string, string](1000).WithTTL(100 * time.Millisecond)
 
