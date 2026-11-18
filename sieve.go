@@ -20,17 +20,6 @@ type node[K comparable, V any] struct {
 	access  time.Time
 }
 
-func newNode[K comparable, V any](key K, value V, access time.Time) *node[K, V] {
-	return &node[K, V]{
-		key:     key,
-		value:   value,
-		prev:    nil,
-		next:    nil,
-		visited: false,
-		access:  access,
-	}
-}
-
 // Cache is a data structure working as a cache with a fixed size.
 type Cache[K comparable, V any] struct {
 	head *node[K, V]
@@ -122,12 +111,19 @@ func (s *Cache[K, V]) Set(key K, value V) {
 		return
 	}
 
-	// cache is full
+	var n *node[K, V]
+
+	// a full cache recycles the evicted node, so it inserts without allocating
 	if s.Len() >= s.capacity {
-		s.evictNode(atNow)
+		n = s.evictNode(atNow)
+	} else {
+		n = new(node[K, V])
 	}
 
-	n := newNode(key, value, atNow)
+	n.key = key
+	n.value = value
+	n.visited = false
+	n.access = atNow
 
 	// insert into the cache
 	s.m[key] = n
@@ -155,7 +151,8 @@ func (s *Cache[K, V]) Set(key K, value V) {
 	}
 }
 
-func (s *Cache[K, V]) evictNode(atNow time.Time) {
+// evictNode unlinks the next victim and returns it, so Set can reuse it.
+func (s *Cache[K, V]) evictNode(atNow time.Time) *node[K, V] {
 	h := s.hand
 
 	for h.visited {
@@ -178,6 +175,8 @@ func (s *Cache[K, V]) evictNode(atNow time.Time) {
 
 	s.hand = h
 	s.remove(h)
+
+	return h
 }
 
 // remove drops the node from the linked list and the map.
