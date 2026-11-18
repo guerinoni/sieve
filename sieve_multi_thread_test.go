@@ -19,12 +19,14 @@ const uno = "uno"
 
 // Factories let the common checks run against both cache constructors so the
 // single- and multi-threaded variants stay behaviorally identical.
-func newMT(size int32) *sieve.Cache[int, string]     { return sieve.New[int, string](size) }
-func newST(size int32) *sieve.Cache[int, string]     { return sieve.NewSingleThread[int, string](size) }
-func newMTNeg(size int32) *sieve.Cache[string, int]  { return sieve.New[string, int](size) }
-func newSTNeg(size int32) *sieve.Cache[string, int]  { return sieve.NewSingleThread[string, int](size) }
+func newMT(size int32) *sieve.Cache[int, string]        { return sieve.New[int, string](size) }
+func newST(size int32) *sieve.Cache[int, string]        { return sieve.NewSingleThread[int, string](size) }
+func newMTNeg(size int32) *sieve.Cache[string, int]     { return sieve.New[string, int](size) }
+func newSTNeg(size int32) *sieve.Cache[string, int]     { return sieve.NewSingleThread[string, int](size) }
 func newMTEmpty(size int32) *sieve.Cache[int, struct{}] { return sieve.New[int, struct{}](size) }
-func newSTEmpty(size int32) *sieve.Cache[int, struct{}] { return sieve.NewSingleThread[int, struct{}](size) }
+func newSTEmpty(size int32) *sieve.Cache[int, struct{}] {
+	return sieve.NewSingleThread[int, struct{}](size)
+}
 
 // benchInput loads the whole sample input once so that the benchmarks measure
 // the cache and not the file reading.
@@ -382,7 +384,7 @@ func TestTTLConcurrentChurn(t *testing.T) {
 	for range 4 {
 		go func() {
 			for i := range 20000 {
-				s.Set(i % 100, i)
+				s.Set(i%100, i)
 				s.Get(i % 100)
 				s.Delete(i % 100)
 			}
